@@ -12,10 +12,23 @@ const cities = [
 
 const genres = ["Bollywood", "House", "Pop", "Hip-Hop", "Tech", "Moombahton"];
 
+const events = [
+  { title: "Neon Afterdark", type: "Club", city: "Pune", date: "May 2026", img: "/images/press-cover.jpg", position: "66% center" },
+  { title: "Skyline Sessions", type: "Festival", city: "Mumbai", date: "April 2026", img: "/images/biography.jpg", position: "76% center" },
+  { title: "The Grand Wedding", type: "Wedding", city: "Goa", date: "March 2026", img: "/images/hiring.jpg", position: "25% center" },
+  { title: "Arena Pulse", type: "Sports", city: "Bengaluru", date: "February 2026", img: "/images/cities.jpg", position: "30% center" },
+  { title: "Sundown Society", type: "Festival", city: "Lonavala", date: "January 2026", img: "/images/pune.jpg", position: "75% center" },
+  { title: "Midnight Circuit", type: "Club", city: "Pune", date: "December 2025", img: "/images/press-cover.jpg", position: "24% center" },
+  { title: "Royal Reception", type: "Wedding", city: "Mahabaleshwar", date: "November 2025", img: "/images/biography.jpg", position: "25% center" },
+  { title: "League Night", type: "Sports", city: "Mumbai", date: "October 2025", img: "/images/cities.jpg", position: "74% center" },
+];
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [contactOpen, setContactOpen] = useState(false);
+  const [galleryFilter, setGalleryFilter] = useState("All");
+  const [selectedEvent, setSelectedEvent] = useState<(typeof events)[number] | null>(null);
   const [booking, setBooking] = useState({ name: "", date: "", city: "", event: "Wedding" });
   const heroRef = useRef<HTMLElement>(null);
   const bookingMessage = `Hi DJ Abhishek! I would like to enquire about a ${booking.event} booking${booking.date ? ` on ${booking.date}` : ""}${booking.city ? ` in ${booking.city}` : ""}.${booking.name ? ` My name is ${booking.name}.` : ""}`;
@@ -51,6 +64,7 @@ export default function Home() {
       if (event.key === "Escape") {
         setMenuOpen(false);
         setContactOpen(false);
+        setSelectedEvent(null);
       }
     };
     window.addEventListener("pointermove", move, { passive: true });
@@ -72,6 +86,7 @@ export default function Home() {
     const body = encodeURIComponent(`${bookingMessage}\n\nPlease share availability and pricing.`);
     window.location.href = `mailto:abhinikam47@gmail.com?subject=${subject}&body=${body}`;
   };
+  const visibleEvents = galleryFilter === "All" ? events : events.filter((event) => event.type === galleryFilter);
 
   return (
     <main>
@@ -84,6 +99,7 @@ export default function Home() {
         <div className={`nav-links ${menuOpen ? "open" : ""}`}>
           <a href="#story" onClick={() => setMenuOpen(false)}>Story</a>
           <a href="#shows" onClick={() => setMenuOpen(false)}>Shows</a>
+          <a href="#gallery" onClick={() => setMenuOpen(false)}>Gallery</a>
           <a href="#sound" onClick={() => setMenuOpen(false)}>Sound</a>
           <a className="nav-cta" href="#book" onClick={() => setMenuOpen(false)}>Book now ↗</a>
         </div>
@@ -226,6 +242,57 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="gallery section" id="gallery" data-reveal>
+        <div className="section-index">04 / EVENT ARCHIVE</div>
+        <div className="gallery-head">
+          <div>
+            <p className="kicker">MOMENTS FROM THE BOOTH</p>
+            <h2>Lights. Crowd.<br /><em>Full volume.</em></h2>
+          </div>
+          <p>
+            A temporary look at club nights, festivals, weddings and arena energy.
+            Replace these with real event shots whenever they are ready.
+          </p>
+        </div>
+        <div className="gallery-filters" aria-label="Filter events">
+          {["All", "Club", "Festival", "Wedding", "Sports"].map((filter) => (
+            <button
+              key={filter}
+              className={galleryFilter === filter ? "active" : ""}
+              onClick={() => setGalleryFilter(filter)}
+              aria-pressed={galleryFilter === filter}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+        <div className="gallery-grid">
+          {visibleEvents.map((event, index) => (
+            <button
+              className="gallery-card"
+              key={event.title}
+              onClick={() => setSelectedEvent(event)}
+              aria-label={`View ${event.title} event`}
+            >
+              <Image
+                src={event.img}
+                alt=""
+                fill
+                sizes="(max-width: 580px) 92vw, (max-width: 900px) 46vw, 33vw"
+                style={{ objectPosition: event.position }}
+              />
+              <span className="gallery-number">{String(index + 1).padStart(2, "0")}</span>
+              <span className="gallery-type">{event.type}</span>
+              <span className="gallery-meta">
+                <strong>{event.title}</strong>
+                <small>{event.city} · {event.date}</small>
+              </span>
+              <span className="gallery-open">View ↗</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="booking" id="book" data-reveal>
         <div className="booking-noise" />
         <div className="booking-content">
@@ -281,6 +348,33 @@ export default function Home() {
         </div>
         <div className="booking-monogram">A</div>
       </section>
+
+      {selectedEvent && (
+        <div
+          className="lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${selectedEvent.title} event preview`}
+          onClick={() => setSelectedEvent(null)}
+        >
+          <button className="lightbox-close" onClick={() => setSelectedEvent(null)} aria-label="Close gallery preview">×</button>
+          <div className="lightbox-frame" onClick={(event) => event.stopPropagation()}>
+            <Image
+              src={selectedEvent.img}
+              alt={`${selectedEvent.title}, ${selectedEvent.city}`}
+              fill
+              sizes="95vw"
+              priority
+              style={{ objectPosition: selectedEvent.position }}
+            />
+            <div className="lightbox-caption">
+              <span>{selectedEvent.type}</span>
+              <h3>{selectedEvent.title}</h3>
+              <p>{selectedEvent.city} · {selectedEvent.date}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <aside className={`contact-dock ${contactOpen ? "open" : ""}`} aria-label="Quick contact">
         <div className="contact-actions">
