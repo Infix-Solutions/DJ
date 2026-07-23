@@ -1,26 +1,26 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 
 const cities = [
-  { name: "Pune", note: "Home city", img: "/images/pune.jpg" },
-  { name: "Mumbai", note: "Taj · Sahara Star · JW Marriott", img: "/images/cities.jpg" },
-  { name: "Goa", note: "Grand Hyatt · Marriott · Novotel", img: "/images/cities.jpg" },
-  { name: "Kathmandu", note: "International tour · Hyatt", img: "/images/cities.jpg" },
+  { name: "Pune", note: "Home city", img: "/images/event-green-jacket.jpg" },
+  { name: "Mumbai", note: "Taj · Sahara Star · JW Marriott", img: "/images/event-silver-jacket.jpg" },
+  { name: "Goa", note: "Grand Hyatt · Marriott · Novotel", img: "/images/event-blue-jacket.jpg" },
+  { name: "Kathmandu", note: "International tour · Hyatt", img: "/images/event-black-jacket.jpg" },
 ];
 
 const genres = ["Bollywood", "House", "Pop", "Hip-Hop", "Tech", "Moombahton"];
 
 const events = [
-  { title: "Neon Afterdark", type: "Club", city: "Pune", date: "May 2026", img: "/images/press-cover.jpg", position: "66% center" },
-  { title: "Skyline Sessions", type: "Festival", city: "Mumbai", date: "April 2026", img: "/images/biography.jpg", position: "76% center" },
-  { title: "The Grand Wedding", type: "Wedding", city: "Goa", date: "March 2026", img: "/images/hiring.jpg", position: "25% center" },
-  { title: "Arena Pulse", type: "Sports", city: "Bengaluru", date: "February 2026", img: "/images/cities.jpg", position: "30% center" },
-  { title: "Sundown Society", type: "Festival", city: "Lonavala", date: "January 2026", img: "/images/pune.jpg", position: "75% center" },
-  { title: "Midnight Circuit", type: "Club", city: "Pune", date: "December 2025", img: "/images/press-cover.jpg", position: "24% center" },
-  { title: "Royal Reception", type: "Wedding", city: "Mahabaleshwar", date: "November 2025", img: "/images/biography.jpg", position: "25% center" },
-  { title: "League Night", type: "Sports", city: "Mumbai", date: "October 2025", img: "/images/cities.jpg", position: "74% center" },
+  { title: "Neon Afterdark", type: "Club", city: "Pune", date: "May 2026", img: "/images/event-blue-jacket.jpg", position: "center" },
+  { title: "Skyline Sessions", type: "Festival", city: "Mumbai", date: "April 2026", img: "/images/event-black-jacket.jpg", position: "center" },
+  { title: "The Grand Wedding", type: "Wedding", city: "Goa", date: "March 2026", img: "/images/event-booth.jpg", position: "center" },
+  { title: "Arena Pulse", type: "Sports", city: "Bengaluru", date: "February 2026", img: "/images/event-silver-jacket.jpg", position: "center" },
+  { title: "Sundown Society", type: "Festival", city: "Lonavala", date: "January 2026", img: "/images/event-green-jacket.jpg", position: "center" },
+  { title: "Midnight Circuit", type: "Club", city: "Pune", date: "December 2025", img: "/images/event-blue-jacket.jpg", position: "center" },
+  { title: "Royal Reception", type: "Wedding", city: "Mahabaleshwar", date: "November 2025", img: "/images/event-black-jacket.jpg", position: "center" },
+  { title: "League Night", type: "Sports", city: "Mumbai", date: "October 2025", img: "/images/event-silver-jacket.jpg", position: "center" },
 ];
 
 const bookingFacts = [
@@ -35,9 +35,12 @@ export default function Home() {
   const [soundOn, setSoundOn] = useState(true);
   const [contactOpen, setContactOpen] = useState(false);
   const [galleryFilter, setGalleryFilter] = useState("All");
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryPlaying, setGalleryPlaying] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<(typeof events)[number] | null>(null);
   const [booking, setBooking] = useState({ name: "", date: "", city: "", event: "Wedding" });
   const heroRef = useRef<HTMLElement>(null);
+  const galleryTrackRef = useRef<HTMLDivElement>(null);
   const bookingMessage = `Hi DJ Abhishek! I would like to enquire about a ${booking.event} booking${booking.date ? ` on ${booking.date}` : ""}${booking.city ? ` in ${booking.city}` : ""}.${booking.name ? ` My name is ${booking.name}.` : ""}`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(bookingMessage)}`;
 
@@ -118,23 +121,97 @@ export default function Home() {
     window.location.href = `mailto:abhinikam47@gmail.com?subject=${subject}&body=${body}`;
   };
   const visibleEvents = galleryFilter === "All" ? events : events.filter((event) => event.type === galleryFilter);
+  const scrollGallery = (direction: number) => {
+    const track = galleryTrackRef.current;
+    if (!track) return;
+    const amount = Math.min(track.clientWidth * 0.78, 430);
+    track.scrollBy({ left: amount * direction, behavior: "smooth" });
+  };
+  const selectAdjacentEvent = (direction: number) => {
+    if (!selectedEvent) return;
+    const current = visibleEvents.findIndex((event) => event.title === selectedEvent.title);
+    const next = (current + direction + visibleEvents.length) % visibleEvents.length;
+    setSelectedEvent(visibleEvents[next]);
+  };
+
+  useEffect(() => {
+    document.body.style.overflow = selectedEvent ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selectedEvent]);
+
+  useEffect(() => {
+    if (!galleryOpen || !galleryPlaying || selectedEvent) return;
+    const timer = window.setInterval(() => {
+      const track = galleryTrackRef.current;
+      if (!track) return;
+      const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 20;
+      if (atEnd) track.scrollTo({ left: 0, behavior: "smooth" });
+      else scrollGallery(1);
+    }, 2600);
+    return () => window.clearInterval(timer);
+  }, [galleryOpen, galleryPlaying, selectedEvent, galleryFilter]);
+
+  useEffect(() => {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (reducedMotion || !finePointer) return;
+
+    const tiltItems = [...document.querySelectorAll<HTMLElement>("[data-tilt]")];
+    const cleanups = tiltItems.map((item) => {
+      const move = (event: PointerEvent) => {
+        const bounds = item.getBoundingClientRect();
+        const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+        const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+        item.style.setProperty("--tilt-x", `${y * -7}deg`);
+        item.style.setProperty("--tilt-y", `${x * 9}deg`);
+      };
+      const reset = () => {
+        item.style.setProperty("--tilt-x", "0deg");
+        item.style.setProperty("--tilt-y", "0deg");
+      };
+      item.addEventListener("pointermove", move);
+      item.addEventListener("pointerleave", reset);
+      return () => {
+        item.removeEventListener("pointermove", move);
+        item.removeEventListener("pointerleave", reset);
+      };
+    });
+    return () => cleanups.forEach((cleanup) => cleanup());
+  }, []);
 
   return (
     <main>
       <div className="scroll-progress" aria-hidden="true" />
+      <div className={`site-lighting ${soundOn ? "is-live" : ""}`} aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </div>
       <nav className="nav" aria-label="Primary navigation">
         <a className="brand" href="#top" aria-label="DJ Abhishek home">
-          <span className="brand-mark">A</span>
+          <span className="brand-mark"><span>DJ</span></span>
           <span className="brand-copy">DJ <b>ABHISHEK</b></span>
         </a>
         <div className={`nav-links ${menuOpen ? "open" : ""}`}>
           <a href="#story" onClick={() => setMenuOpen(false)}>Story</a>
           <a href="#shows" onClick={() => setMenuOpen(false)}>Shows</a>
-          <a href="#gallery" onClick={() => setMenuOpen(false)}>Gallery</a>
+          <a
+            href="#gallery"
+            onClick={() => {
+              setMenuOpen(false);
+              setGalleryOpen(true);
+              setGalleryPlaying(true);
+            }}
+          >
+            Gallery
+          </a>
           <a href="#sound" onClick={() => setMenuOpen(false)}>Sound</a>
           <a className="nav-cta" href="#book" onClick={() => setMenuOpen(false)}>Book now ↗</a>
         </div>
         <button
+          type="button"
           className="menu"
           aria-label="Toggle navigation"
           aria-expanded={menuOpen}
@@ -145,18 +222,30 @@ export default function Home() {
       </nav>
 
       <section className="hero" id="top" ref={heroRef}>
-        <div className="hero-bg">
-          <Image
-            src="/images/press-cover.jpg"
-            alt=""
-            fill
-            priority
-            quality={82}
-            sizes="100vw"
-          />
-        </div>
+        <div className="hero-bg" aria-hidden="true" />
         <div className="orb orb-one" />
         <div className="orb orb-two" />
+        <div className={`dj-atmosphere ${soundOn ? "is-live" : ""}`} aria-hidden="true">
+          <div className="stage-rig">
+            {Array.from({ length: 7 }, (_, index) => <span key={index} />)}
+          </div>
+          <i className="stage-beam beam-left" />
+          <i className="stage-beam beam-right" />
+          <i className="stage-beam beam-center-left" />
+          <i className="stage-beam beam-center-right" />
+          <div className="led-wall">
+            {Array.from({ length: 18 }, (_, index) => <span key={index} />)}
+          </div>
+          <div className="laser laser-one" />
+          <div className="laser laser-two" />
+          <div className="laser laser-three" />
+          <div className="hero-equalizer">
+            {Array.from({ length: 12 }, (_, index) => <span key={index} />)}
+          </div>
+          <div className="bass-ring" />
+          <div className="stage-floor" />
+          <div className="stage-strobe" />
+        </div>
         <div className="hero-content">
           <p className="eyebrow"><span /> DJ · REMIXER · PRODUCER</p>
           <h1>
@@ -177,6 +266,7 @@ export default function Home() {
           <div className="scroll-copy">SCROLL TO FEEL THE SET</div>
         </div>
         <button
+          type="button"
           className="sound-toggle"
           onClick={() => setSoundOn(!soundOn)}
           aria-label={soundOn ? "Mute visualizer" : "Activate visualizer"}
@@ -197,15 +287,15 @@ export default function Home() {
       </section>
 
       <section className="story section" id="story" data-reveal>
-        <div className="section-index">01 / THE ARTIST</div>
+        <div className="section-index artist-index"><span>01</span> / THE ARTIST</div>
         <div className="story-grid">
           <div className="portrait-stage" data-reveal>
-            <div className="portrait-card">
-              <Image
-                src="/images/biography.jpg"
+            <div className="portrait-card" data-tilt>
+              <img
+                src="/images/portrait-1400.jpg"
                 alt="DJ Abhishek in a black jacket"
-                fill
-                sizes="(max-width: 900px) 92vw, 42vw"
+                loading="lazy"
+                decoding="async"
               />
             </div>
             <div className="stamp">SINCE<br /><b>2011</b></div>
@@ -222,6 +312,11 @@ export default function Home() {
               From luxury resorts and city clubs to national sports leagues and an
               international show at Hyatt Kathmandu, every room becomes his stage.
             </p>
+            <div className="artist-note" aria-label="DJ Abhishek performance strengths">
+              <span>Open-format</span>
+              <span>Guest-first</span>
+              <span>Event-ready</span>
+            </div>
             <div className="stats">
               <div><b>40+</b><span>Premium venues</span></div>
               <div><b>10+</b><span>Cities performed</span></div>
@@ -242,7 +337,7 @@ export default function Home() {
         </div>
         <div className="confidence-grid">
           {bookingFacts.map((fact) => (
-            <article key={fact.number}>
+            <article key={fact.number} data-tilt>
               <span>{fact.number}</span>
               <h3>{fact.title}</h3>
               <p>{fact.copy}</p>
@@ -277,13 +372,13 @@ export default function Home() {
         </div>
         <div className="city-grid">
           {cities.map((city, index) => (
-            <article className="city-card" key={city.name}>
-              <Image
+            <article className="city-card" key={city.name} data-tilt>
+              <img
                 className="city-image"
                 src={city.img}
                 alt=""
-                fill
-                sizes="(max-width: 580px) 92vw, (max-width: 900px) 46vw, 25vw"
+                loading="lazy"
+                decoding="async"
               />
               <span>0{index + 1}</span>
               <div>
@@ -310,47 +405,77 @@ export default function Home() {
             <h2>Lights. Crowd.<br /><em>Full volume.</em></h2>
           </div>
           <p>
-            A temporary look at club nights, festivals, weddings and arena energy.
-            Replace these with real event shots whenever they are ready.
+            Open the event picker, pause it anywhere, then select a photo to view it full size.
           </p>
         </div>
-        <div className="gallery-filters" aria-label="Filter events">
-          {["All", "Club", "Festival", "Wedding", "Sports"].map((filter) => (
-            <button
-              key={filter}
-              className={galleryFilter === filter ? "active" : ""}
-              onClick={() => setGalleryFilter(filter)}
-              aria-pressed={galleryFilter === filter}
+        <button
+          type="button"
+          className="gallery-launch"
+          onClick={() => {
+            setGalleryOpen(!galleryOpen);
+            setGalleryPlaying(true);
+          }}
+          aria-expanded={galleryOpen}
+        >
+          <span>{galleryOpen ? "Close gallery" : "Open event gallery"}</span>
+          <b>{galleryOpen ? "×" : "→"}</b>
+        </button>
+        {galleryOpen && (
+          <div className="gallery-picker">
+            <div className="gallery-toolbar">
+              <div className="gallery-filters" aria-label="Filter events">
+                {["All", "Club", "Festival", "Wedding", "Sports"].map((filter) => (
+                  <button
+                    type="button"
+                    key={filter}
+                    className={galleryFilter === filter ? "active" : ""}
+                    onClick={() => {
+                      setGalleryFilter(filter);
+                      setGalleryPlaying(false);
+                      galleryTrackRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+                    }}
+                    aria-pressed={galleryFilter === filter}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+              <div className="gallery-controls">
+                <button type="button" onClick={() => { setGalleryPlaying(false); scrollGallery(-1); }} aria-label="Previous gallery photos">←</button>
+                <button type="button" className="play-control" onClick={() => setGalleryPlaying(!galleryPlaying)}>
+                  {galleryPlaying ? "Pause" : "Play"}
+                </button>
+                <button type="button" onClick={() => { setGalleryPlaying(false); scrollGallery(1); }} aria-label="Next gallery photos">→</button>
+              </div>
+            </div>
+            <div
+              className="gallery-track"
+              ref={galleryTrackRef}
+              onPointerDown={() => setGalleryPlaying(false)}
+              onWheel={() => setGalleryPlaying(false)}
             >
-              {filter}
-            </button>
-          ))}
-        </div>
-        <div className="gallery-grid">
-          {visibleEvents.map((event, index) => (
-            <button
-              className="gallery-card"
-              key={event.title}
-              onClick={() => setSelectedEvent(event)}
-              aria-label={`View ${event.title} event`}
-            >
-              <Image
-                src={event.img}
-                alt=""
-                fill
-                sizes="(max-width: 580px) 92vw, (max-width: 900px) 46vw, 33vw"
-                style={{ objectPosition: event.position }}
-              />
-              <span className="gallery-number">{String(index + 1).padStart(2, "0")}</span>
-              <span className="gallery-type">{event.type}</span>
-              <span className="gallery-meta">
-                <strong>{event.title}</strong>
-                <small>{event.city} · {event.date}</small>
-              </span>
-              <span className="gallery-open">View ↗</span>
-            </button>
-          ))}
-        </div>
+              {visibleEvents.map((event) => (
+                <button
+                  type="button"
+                  className="gallery-card"
+                  key={event.title}
+                  onClick={() => {
+                    setGalleryPlaying(false);
+                    setSelectedEvent(event);
+                  }}
+                  aria-label={`View ${event.title} event`}
+                >
+                  <img src={event.img} alt="" loading="lazy" decoding="async" style={{ objectPosition: event.position }} />
+                  <span className="gallery-type">{event.type}</span>
+                  <span className="gallery-meta">
+                    <strong>{event.title}</strong>
+                    <small>{event.city} · {event.date}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="booking" id="book" data-reveal>
@@ -358,7 +483,7 @@ export default function Home() {
         <div className="booking-content">
           <p className="kicker">YOUR CROWD. HIS FREQUENCY.</p>
           <h2>Ready to make<br />it <em>unforgettable?</em></h2>
-          <form className="booking-form" onSubmit={sendEmail}>
+          <form className="booking-form" onSubmit={sendEmail} data-tilt>
             <label>
               <span>Your name</span>
               <input
@@ -417,15 +542,13 @@ export default function Home() {
           aria-label={`${selectedEvent.title} event preview`}
           onClick={() => setSelectedEvent(null)}
         >
-          <button className="lightbox-close" onClick={() => setSelectedEvent(null)} aria-label="Close gallery preview">×</button>
+          <button type="button" className="lightbox-close" onClick={() => setSelectedEvent(null)} aria-label="Close gallery preview">×</button>
+          <button type="button" className="lightbox-arrow prev" onClick={(event) => { event.stopPropagation(); selectAdjacentEvent(-1); }} aria-label="Previous event">←</button>
           <div className="lightbox-frame" onClick={(event) => event.stopPropagation()}>
-            <Image
+            <img
               src={selectedEvent.img}
               alt={`${selectedEvent.title}, ${selectedEvent.city}`}
-              fill
-              sizes="95vw"
-              priority
-              unoptimized
+              decoding="async"
               style={{ objectPosition: selectedEvent.position }}
             />
             <div className="lightbox-caption">
@@ -434,6 +557,7 @@ export default function Home() {
               <p>{selectedEvent.city} · {selectedEvent.date}</p>
             </div>
           </div>
+          <button type="button" className="lightbox-arrow next" onClick={(event) => { event.stopPropagation(); selectAdjacentEvent(1); }} aria-label="Next event">→</button>
         </div>
       )}
 
@@ -494,7 +618,7 @@ export default function Home() {
 
       <footer>
         <div className="brand footer-brand">
-          <span className="brand-mark">A</span>
+          <span className="brand-mark"><span>DJ</span></span>
           <span className="brand-copy">DJ <b>ABHISHEK</b></span>
         </div>
         <p>DJ · REMIXER · PRODUCER · PUNE, INDIA</p>
