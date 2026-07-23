@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 const cities = [
   { name: "Pune", note: "Home city", img: "/images/pune.jpg" },
@@ -14,23 +15,67 @@ const genres = ["Bollywood", "House", "Pop", "Hip-Hop", "Tech", "Moombahton"];
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [booking, setBooking] = useState({ name: "", date: "", city: "", event: "Wedding" });
   const heroRef = useRef<HTMLElement>(null);
+  const bookingMessage = `Hi DJ Abhishek! I would like to enquire about a ${booking.event} booking${booking.date ? ` on ${booking.date}` : ""}${booking.city ? ` in ${booking.city}` : ""}.${booking.name ? ` My name is ${booking.name}.` : ""}`;
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(bookingMessage)}`;
 
   useEffect(() => {
     const hero = heroRef.current;
     if (!hero) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
     const move = (event: PointerEvent) => {
+      if (reducedMotion || !finePointer) return;
       const x = (event.clientX / window.innerWidth - 0.5) * 2;
       const y = (event.clientY / window.innerHeight - 0.5) * 2;
       hero.style.setProperty("--mx", `${x}`);
       hero.style.setProperty("--my", `${y}`);
     };
-    window.addEventListener("pointermove", move);
-    return () => window.removeEventListener("pointermove", move);
+    let frame = 0;
+    const updateProgress = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        document.documentElement.style.setProperty("--scroll", `${max > 0 ? window.scrollY / max : 0}`);
+        frame = 0;
+      });
+    };
+    const revealObserver = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("is-visible")),
+      { rootMargin: "0px 0px -10% 0px", threshold: 0.08 },
+    );
+    document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((element) => revealObserver.observe(element));
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        setContactOpen(false);
+      }
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("keydown", closeOnEscape);
+    updateProgress();
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("scroll", updateProgress);
+      window.removeEventListener("keydown", closeOnEscape);
+      revealObserver.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
+
+  const sendEmail = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const subject = encodeURIComponent(`DJ booking enquiry - ${booking.event}`);
+    const body = encodeURIComponent(`${bookingMessage}\n\nPlease share availability and pricing.`);
+    window.location.href = `mailto:abhinikam47@gmail.com?subject=${subject}&body=${body}`;
+  };
 
   return (
     <main>
+      <div className="scroll-progress" aria-hidden="true" />
       <nav className="nav" aria-label="Primary navigation">
         <a className="brand" href="#top" aria-label="DJ Abhishek home">
           <span className="brand-mark">A</span>
@@ -95,15 +140,22 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="story section" id="story">
+      <section className="story section" id="story" data-reveal>
         <div className="section-index">01 / THE ARTIST</div>
         <div className="story-grid">
-          <div className="portrait-stage">
-            <div className="portrait-card" />
+          <div className="portrait-stage" data-reveal>
+            <div className="portrait-card">
+              <Image
+                src="/images/biography.jpg"
+                alt="DJ Abhishek in a black jacket"
+                fill
+                sizes="(max-width: 900px) 92vw, 42vw"
+              />
+            </div>
             <div className="stamp">SINCE<br /><b>2011</b></div>
             <span className="vertical-label">PUNE · INDIA · WORLDWIDE</span>
           </div>
-          <div className="story-copy">
+          <div className="story-copy" data-reveal>
             <p className="kicker">CONFIDENCE IN EVERY DROP</p>
             <h2>Built for the<br /><em>big moment.</em></h2>
             <p className="lead">
@@ -123,7 +175,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="sound section" id="sound">
+      <section className="sound section" id="sound" data-reveal>
         <div className="section-index">02 / THE SOUND</div>
         <div className="sound-head">
           <h2>One booth.<br /><em>Every frequency.</em></h2>
@@ -141,7 +193,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="shows section" id="shows">
+      <section className="shows section" id="shows" data-reveal>
         <div className="section-index">03 / PLAYED HERE</div>
         <div className="shows-head">
           <h2>From Pune<br />to <em>everywhere.</em></h2>
@@ -150,7 +202,13 @@ export default function Home() {
         <div className="city-grid">
           {cities.map((city, index) => (
             <article className="city-card" key={city.name}>
-              <div className="city-image" style={{ backgroundImage: `url(${city.img})` }} />
+              <Image
+                className="city-image"
+                src={city.img}
+                alt=""
+                fill
+                sizes="(max-width: 580px) 92vw, (max-width: 900px) 46vw, 25vw"
+              />
               <span>0{index + 1}</span>
               <div>
                 <h3>{city.name}</h3>
@@ -168,14 +226,53 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="booking" id="book">
+      <section className="booking" id="book" data-reveal>
         <div className="booking-noise" />
         <div className="booking-content">
           <p className="kicker">YOUR CROWD. HIS FREQUENCY.</p>
           <h2>Ready to make<br />it <em>unforgettable?</em></h2>
-          <a className="booking-button" href="mailto:abhinikam47@gmail.com">
-            <span>Start a booking</span><b>↗</b>
-          </a>
+          <form className="booking-form" onSubmit={sendEmail}>
+            <label>
+              <span>Your name</span>
+              <input
+                type="text"
+                autoComplete="name"
+                placeholder="Name"
+                value={booking.name}
+                onChange={(event) => setBooking({ ...booking, name: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>Event type</span>
+              <select value={booking.event} onChange={(event) => setBooking({ ...booking, event: event.target.value })}>
+                <option>Wedding</option>
+                <option>Club night</option>
+                <option>Corporate event</option>
+                <option>Festival</option>
+                <option>Private party</option>
+              </select>
+            </label>
+            <label>
+              <span>Event date</span>
+              <input type="date" value={booking.date} onChange={(event) => setBooking({ ...booking, date: event.target.value })} />
+            </label>
+            <label>
+              <span>Event city</span>
+              <input
+                type="text"
+                autoComplete="address-level2"
+                placeholder="City"
+                value={booking.city}
+                onChange={(event) => setBooking({ ...booking, city: event.target.value })}
+              />
+            </label>
+            <button className="booking-button" type="submit">
+              <span>Send by email</span><b>↗</b>
+            </button>
+            <a className="booking-button whatsapp" href={whatsappUrl} target="_blank" rel="noreferrer">
+              <span>Continue on WhatsApp</span><b>↗</b>
+            </a>
+          </form>
           <div className="contact-row">
             <a href="https://instagram.com/deejay_abhii" target="_blank" rel="noreferrer">Instagram ↗</a>
             <a href="https://facebook.com/abhishek.nik.7" target="_blank" rel="noreferrer">Facebook ↗</a>
@@ -184,6 +281,28 @@ export default function Home() {
         </div>
         <div className="booking-monogram">A</div>
       </section>
+
+      <aside className={`contact-dock ${contactOpen ? "open" : ""}`} aria-label="Quick contact">
+        <div className="contact-actions">
+          <a href={whatsappUrl} target="_blank" rel="noreferrer" aria-label="Contact on WhatsApp">
+            <span>WhatsApp</span><b>WA</b>
+          </a>
+          <a href="mailto:abhinikam47@gmail.com?subject=DJ%20booking%20enquiry" aria-label="Send booking email">
+            <span>Email</span><b>@</b>
+          </a>
+          <a href="https://instagram.com/deejay_abhii" target="_blank" rel="noreferrer" aria-label="Open Instagram">
+            <span>Instagram</span><b>IG</b>
+          </a>
+        </div>
+        <button
+          className="contact-trigger"
+          onClick={() => setContactOpen(!contactOpen)}
+          aria-expanded={contactOpen}
+          aria-label={contactOpen ? "Close contact options" : "Open contact options"}
+        >
+          {contactOpen ? "×" : "↗"} <span>{contactOpen ? "Close" : "Book"}</span>
+        </button>
+      </aside>
 
       <footer>
         <div className="brand footer-brand">
