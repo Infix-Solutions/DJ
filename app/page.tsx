@@ -23,6 +23,13 @@ const events = [
   { title: "League Night", type: "Sports", city: "Mumbai", date: "October 2025", img: "/images/cities.jpg", position: "74% center" },
 ];
 
+const bookingFacts = [
+  { number: "01", title: "Crowd-first sets", copy: "Every performance adapts to the room, the moment and the energy on the floor." },
+  { number: "02", title: "Open-format range", copy: "Bollywood, house, pop, hip-hop, tech and moombahton in one seamless journey." },
+  { number: "03", title: "Event-ready", copy: "Experienced across weddings, clubs, hotels, destination events and national sports leagues." },
+  { number: "04", title: "Clear tech rider", copy: "Pioneer 2000NXS2 setup, quality booth monitors and microphone requirements shared upfront." },
+];
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
@@ -60,6 +67,25 @@ export default function Home() {
       { rootMargin: "0px 0px -10% 0px", threshold: 0.08 },
     );
     document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((element) => revealObserver.observe(element));
+    let idleTask = 0;
+    const preloadGallery = () => {
+      const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+      if (connection?.saveData || connection?.effectiveType?.includes("2g")) return;
+      [...new Set(events.map((event) => event.img))].forEach((src) => {
+        const link = document.createElement("link");
+        link.rel = "prefetch";
+        link.as = "image";
+        link.href = src;
+        document.head.appendChild(link);
+      });
+    };
+    const schedulePreload = () => {
+      if ("requestIdleCallback" in window) {
+        idleTask = window.requestIdleCallback(preloadGallery, { timeout: 3500 });
+      } else {
+        idleTask = window.setTimeout(preloadGallery, 1600);
+      }
+    };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMenuOpen(false);
@@ -70,13 +96,18 @@ export default function Home() {
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("scroll", updateProgress, { passive: true });
     window.addEventListener("keydown", closeOnEscape);
+    if (document.readyState === "complete") schedulePreload();
+    else window.addEventListener("load", schedulePreload, { once: true });
     updateProgress();
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("scroll", updateProgress);
       window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("load", schedulePreload);
       revealObserver.disconnect();
       if (frame) cancelAnimationFrame(frame);
+      if ("cancelIdleCallback" in window) window.cancelIdleCallback(idleTask);
+      else window.clearTimeout(idleTask);
     };
   }, []);
 
@@ -114,7 +145,16 @@ export default function Home() {
       </nav>
 
       <section className="hero" id="top" ref={heroRef}>
-        <div className="hero-bg" />
+        <div className="hero-bg">
+          <Image
+            src="/images/press-cover.jpg"
+            alt=""
+            fill
+            priority
+            quality={82}
+            sizes="100vw"
+          />
+        </div>
         <div className="orb orb-one" />
         <div className="orb orb-two" />
         <div className="hero-content">
@@ -191,8 +231,28 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="confidence section" data-reveal>
+        <div className="section-index">04 / WHY BOOK ABHISHEK</div>
+        <div className="confidence-head">
+          <div>
+            <p className="kicker">WHAT A CUSTOMER NEEDS TO KNOW</p>
+            <h2>Big energy.<br /><em>Zero guesswork.</em></h2>
+          </div>
+          <a href="#book">Check booking options ↗</a>
+        </div>
+        <div className="confidence-grid">
+          {bookingFacts.map((fact) => (
+            <article key={fact.number}>
+              <span>{fact.number}</span>
+              <h3>{fact.title}</h3>
+              <p>{fact.copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="sound section" id="sound" data-reveal>
-        <div className="section-index">02 / THE SOUND</div>
+        <div className="section-index">05 / THE SOUND</div>
         <div className="sound-head">
           <h2>One booth.<br /><em>Every frequency.</em></h2>
           <p>An open-format journey grounded in Bollywood and built to move without borders.</p>
@@ -210,7 +270,7 @@ export default function Home() {
       </section>
 
       <section className="shows section" id="shows" data-reveal>
-        <div className="section-index">03 / PLAYED HERE</div>
+        <div className="section-index">02 / PLAYED HERE</div>
         <div className="shows-head">
           <h2>From Pune<br />to <em>everywhere.</em></h2>
           <p>Hotels, destination resorts, arenas and city nights across India and beyond.</p>
@@ -243,7 +303,7 @@ export default function Home() {
       </section>
 
       <section className="gallery section" id="gallery" data-reveal>
-        <div className="section-index">04 / EVENT ARCHIVE</div>
+        <div className="section-index">03 / EVENT ARCHIVE</div>
         <div className="gallery-head">
           <div>
             <p className="kicker">MOMENTS FROM THE BOOTH</p>
@@ -365,6 +425,7 @@ export default function Home() {
               fill
               sizes="95vw"
               priority
+              unoptimized
               style={{ objectPosition: selectedEvent.position }}
             />
             <div className="lightbox-caption">
@@ -375,6 +436,39 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <section className="faq section" data-reveal>
+        <div className="section-index">06 / BEFORE YOU BOOK</div>
+        <div className="faq-layout">
+          <div className="faq-title">
+            <p className="kicker">THE USEFUL DETAILS</p>
+            <h2>Quick<br /><em>answers.</em></h2>
+            <p>Everything an event planner usually wants to know before the first call.</p>
+          </div>
+          <div className="faq-list">
+            <details>
+              <summary>What events can DJ Abhishek perform at?<span>+</span></summary>
+              <p>Weddings, private celebrations, clubs, corporate events, hotels, resorts, festivals and sports events.</p>
+            </details>
+            <details>
+              <summary>Does he travel outside Pune?<span>+</span></summary>
+              <p>Yes. Travel, accommodation and food arrangements apply for events outside Pune.</p>
+            </details>
+            <details>
+              <summary>What music formats are available?<span>+</span></summary>
+              <p>Both DJing and VDJing, with Bollywood as the base and house, pop, hip-hop, tech and moombahton in the mix.</p>
+            </details>
+            <details>
+              <summary>What equipment is required?<span>+</span></summary>
+              <p>A Pioneer 2000NXS2 setup, a quality microphone and two monitors at the DJ booth.</p>
+            </details>
+            <details>
+              <summary>How are performance charges decided?<span>+</span></summary>
+              <p>Pricing depends on the event format, location, festival period and special-date demand. Send the date and city for an accurate quote.</p>
+            </details>
+          </div>
+        </div>
+      </section>
 
       <aside className={`contact-dock ${contactOpen ? "open" : ""}`} aria-label="Quick contact">
         <div className="contact-actions">
