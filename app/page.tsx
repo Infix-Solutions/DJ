@@ -1,629 +1,285 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
+import dynamic from "next/dynamic";
+import { AnimatePresence, motion } from "motion/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "lenis";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
+const DeckScene = dynamic(() => import("./components/DeckScene"), {
+  ssr: false,
+  loading: () => <div className="scene-loader"><span /><small>CALIBRATING DECKS</small></div>,
+});
+
+const tracks = [
+  { n: "01", title: "Midnight Bombay", genre: "Bollywood House", year: "2024", duration: "5:42" },
+  { n: "02", title: "Velvet Hours", genre: "Deep House", year: "2023", duration: "6:18" },
+  { n: "03", title: "Monsoon Pulse", genre: "Moombahton", year: "2023", duration: "4:55" },
+  { n: "04", title: "Golden Skyline", genre: "Tech House", year: "2022", duration: "7:04" },
+];
+
 const cities = [
-  { name: "Pune", note: "Home city", img: "/images/event-green-jacket.jpg" },
-  { name: "Mumbai", note: "Taj · Sahara Star · JW Marriott", img: "/images/event-silver-jacket.jpg" },
-  { name: "Goa", note: "Grand Hyatt · Marriott · Novotel", img: "/images/event-blue-jacket.jpg" },
-  { name: "Kathmandu", note: "International tour · Hyatt", img: "/images/event-black-jacket.jpg" },
+  ["Kathmandu", "Nepal", "Hyatt Regency", "International"],
+  ["Goa", "India", "Grand Hyatt · JW Marriott · The Lalit", "Coastal"],
+  ["Mumbai", "India", "Taj · Sahara Star · The Leela Palace", "Metro"],
+  ["Pune", "India", "JW Marriott · Sheraton Grand · Conrad", "Home Turf"],
+  ["Lonavala", "India", "Della Adventure · Fariyas · Novotel", "Hills"],
+  ["Mahabaleshwar", "India", "Le Méridien · The Fern", "Hills"],
+  ["Bangalore", "India", "JW Marriott Golfshire", "Metro"],
+  ["Daman", "India", "Fortune Park Galaxy", "Coastal"],
 ];
 
-const genres = ["Bollywood", "House", "Pop", "Hip-Hop", "Tech", "Moombahton"];
-
-const events = [
-  { title: "Neon Afterdark", type: "Club", city: "Pune", date: "May 2026", img: "/images/event-blue-jacket.jpg", position: "center" },
-  { title: "Skyline Sessions", type: "Festival", city: "Mumbai", date: "April 2026", img: "/images/event-black-jacket.jpg", position: "center" },
-  { title: "The Grand Wedding", type: "Wedding", city: "Goa", date: "March 2026", img: "/images/event-booth.jpg", position: "center" },
-  { title: "Arena Pulse", type: "Sports", city: "Bengaluru", date: "February 2026", img: "/images/event-silver-jacket.jpg", position: "center" },
-  { title: "Sundown Society", type: "Festival", city: "Lonavala", date: "January 2026", img: "/images/event-green-jacket.jpg", position: "center" },
-  { title: "Midnight Circuit", type: "Club", city: "Pune", date: "December 2025", img: "/images/event-blue-jacket.jpg", position: "center" },
-  { title: "Royal Reception", type: "Wedding", city: "Mahabaleshwar", date: "November 2025", img: "/images/event-black-jacket.jpg", position: "center" },
-  { title: "League Night", type: "Sports", city: "Mumbai", date: "October 2025", img: "/images/event-silver-jacket.jpg", position: "center" },
+const highlights = [
+  ["01", "Official DJ · MPL", "The soundtrack of Mobile Premier League — energising national campaigns and marquee moments."],
+  ["02", "Ultimate Table Tennis", "Live performances powering one of India’s premier professional sporting leagues."],
+  ["03", "Ultimate Kho Kho", "Arena-scale energy for the debut season of a reinvented traditional sport."],
+  ["04", "150+ Luxury Residencies", "A decade of sets across five-star resorts — from the Taj to the Ritz-Carlton."],
 ];
 
-const bookingFacts = [
-  { number: "01", title: "Crowd-first sets", copy: "Every performance adapts to the room, the moment and the energy on the floor." },
-  { number: "02", title: "Open-format range", copy: "Bollywood, house, pop, hip-hop, tech and moombahton in one seamless journey." },
-  { number: "03", title: "Event-ready", copy: "Experienced across weddings, clubs, hotels, destination events and national sports leagues." },
-  { number: "04", title: "Clear tech rider", copy: "Pioneer 2000NXS2 setup, quality booth monitors and microphone requirements shared upfront." },
+const gallery = [
+  ["/images/event-silver-jacket.jpg", "THE ARRIVAL", "01"],
+  ["/images/event-blue-jacket.jpg", "BLUE HOUR", "02"],
+  ["/images/event-booth.jpg", "BEHIND THE DECKS", "03"],
+  ["/images/event-black-jacket.jpg", "AFTER DARK", "04"],
+  ["/images/event-green-jacket.jpg", "THE RESIDENCY", "05"],
 ];
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
-  const [contactOpen, setContactOpen] = useState(false);
-  const [galleryFilter, setGalleryFilter] = useState("All");
-  const [galleryOpen, setGalleryOpen] = useState(false);
-  const [galleryPlaying, setGalleryPlaying] = useState(true);
-  const [selectedEvent, setSelectedEvent] = useState<(typeof events)[number] | null>(null);
-  const [booking, setBooking] = useState({ name: "", date: "", city: "", event: "Wedding" });
-  const heroRef = useRef<HTMLElement>(null);
-  const galleryTrackRef = useRef<HTMLDivElement>(null);
-  const bookingMessage = `Hi DJ Abhishek! I would like to enquire about a ${booking.event} booking${booking.date ? ` on ${booking.date}` : ""}${booking.city ? ` in ${booking.city}` : ""}.${booking.name ? ` My name is ${booking.name}.` : ""}`;
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(bookingMessage)}`;
+  const [activeTrack, setActiveTrack] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const root = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const hero = heroRef.current;
-    if (!hero) return;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const move = (event: PointerEvent) => {
-      if (reducedMotion || !finePointer) return;
-      const x = (event.clientX / window.innerWidth - 0.5) * 2;
-      const y = (event.clientY / window.innerHeight - 0.5) * 2;
-      hero.style.setProperty("--mx", `${x}`);
-      hero.style.setProperty("--my", `${y}`);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(() => setLoaded(true), reduced ? 80 : 1450);
+    if (reduced) return () => window.clearTimeout(timer);
+
+    gsap.registerPlugin(ScrollTrigger);
+    const lenis = new Lenis({ duration: 1.15, smoothWheel: true });
+    const raf = (time: number) => {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
     };
-    let frame = 0;
-    const updateProgress = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        const max = document.documentElement.scrollHeight - window.innerHeight;
-        document.documentElement.style.setProperty("--scroll", `${max > 0 ? window.scrollY / max : 0}`);
-        frame = 0;
+    const rafId = requestAnimationFrame(raf);
+    lenis.on("scroll", ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+
+    const context = gsap.context(() => {
+      gsap.to(".hero-copy-block", {
+        yPercent: -38,
+        opacity: 0,
+        scrollTrigger: { trigger: ".hero", start: "top top", end: "55% top", scrub: true },
       });
-    };
-    const revealObserver = new IntersectionObserver(
-      (entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("is-visible")),
-      { rootMargin: "0px 0px -10% 0px", threshold: 0.08 },
-    );
-    document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((element) => revealObserver.observe(element));
-    let idleTask = 0;
-    const preloadGallery = () => {
-      const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
-      if (connection?.saveData || connection?.effectiveType?.includes("2g")) return;
-      [...new Set(events.map((event) => event.img))].forEach((src) => {
-        const link = document.createElement("link");
-        link.rel = "prefetch";
-        link.as = "image";
-        link.href = src;
-        document.head.appendChild(link);
+      gsap.to(".hero-brand-ghost", {
+        scale: 1.16,
+        opacity: 0,
+        scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true },
       });
-    };
-    const schedulePreload = () => {
-      if ("requestIdleCallback" in window) {
-        idleTask = window.requestIdleCallback(preloadGallery, { timeout: 3500 });
-      } else {
-        idleTask = window.setTimeout(preloadGallery, 1600);
-      }
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMenuOpen(false);
-        setContactOpen(false);
-        setSelectedEvent(null);
-      }
-    };
-    window.addEventListener("pointermove", move, { passive: true });
-    window.addEventListener("scroll", updateProgress, { passive: true });
-    window.addEventListener("keydown", closeOnEscape);
-    if (document.readyState === "complete") schedulePreload();
-    else window.addEventListener("load", schedulePreload, { once: true });
-    updateProgress();
+      gsap.utils.toArray<HTMLElement>("[data-cinematic]").forEach((element) => {
+        gsap.fromTo(element, { y: 72, opacity: 0 }, {
+          y: 0,
+          opacity: 1,
+          duration: 1.2,
+          ease: "power3.out",
+          scrollTrigger: { trigger: element, start: "top 88%", once: true },
+        });
+      });
+      gsap.utils.toArray<HTMLElement>(".gallery-frame").forEach((element) => {
+        const image = element.querySelector("img");
+        if (image) gsap.fromTo(image, { yPercent: -8, scale: 1.08 }, {
+          yPercent: 8,
+          ease: "none",
+          scrollTrigger: { trigger: element, start: "top bottom", end: "bottom top", scrub: true },
+        });
+      });
+      ScrollTrigger.create({
+        trigger: ".hero",
+        start: "top top",
+        end: "bottom top",
+        scrub: true,
+        onUpdate: ({ progress }) => document.documentElement.style.setProperty("--hero-progress", String(progress)),
+      });
+    }, root);
+
     return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("scroll", updateProgress);
-      window.removeEventListener("keydown", closeOnEscape);
-      window.removeEventListener("load", schedulePreload);
-      revealObserver.disconnect();
-      if (frame) cancelAnimationFrame(frame);
-      if ("cancelIdleCallback" in window) window.cancelIdleCallback(idleTask);
-      else window.clearTimeout(idleTask);
+      window.clearTimeout(timer);
+      cancelAnimationFrame(rafId);
+      context.revert();
+      lenis.destroy();
+      gsap.ticker.remove((time) => lenis.raf(time * 1000));
     };
   }, []);
 
-  const sendEmail = (event: FormEvent<HTMLFormElement>) => {
+  const submitBooking = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const subject = encodeURIComponent(`DJ booking enquiry - ${booking.event}`);
-    const body = encodeURIComponent(`${bookingMessage}\n\nPlease share availability and pricing.`);
-    window.location.href = `mailto:abhinikam47@gmail.com?subject=${subject}&body=${body}`;
+    window.location.href = "mailto:abhinikam47@gmail.com?subject=Booking%20Enquiry%20%E2%80%94%20DJ%20Abhishek";
   };
-  const visibleEvents = galleryFilter === "All" ? events : events.filter((event) => event.type === galleryFilter);
-  const scrollGallery = (direction: number) => {
-    const track = galleryTrackRef.current;
-    if (!track) return;
-    const amount = Math.min(track.clientWidth * 0.78, 430);
-    track.scrollBy({ left: amount * direction, behavior: "smooth" });
-  };
-  const selectAdjacentEvent = (direction: number) => {
-    if (!selectedEvent) return;
-    const current = visibleEvents.findIndex((event) => event.title === selectedEvent.title);
-    const next = (current + direction + visibleEvents.length) % visibleEvents.length;
-    setSelectedEvent(visibleEvents[next]);
-  };
-
-  useEffect(() => {
-    document.body.style.overflow = selectedEvent ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [selectedEvent]);
-
-  useEffect(() => {
-    if (!galleryOpen || !galleryPlaying || selectedEvent) return;
-    const timer = window.setInterval(() => {
-      const track = galleryTrackRef.current;
-      if (!track) return;
-      const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 20;
-      if (atEnd) track.scrollTo({ left: 0, behavior: "smooth" });
-      else scrollGallery(1);
-    }, 2600);
-    return () => window.clearInterval(timer);
-  }, [galleryOpen, galleryPlaying, selectedEvent, galleryFilter]);
-
-  useEffect(() => {
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    if (reducedMotion || !finePointer) return;
-
-    const tiltItems = [...document.querySelectorAll<HTMLElement>("[data-tilt]")];
-    const cleanups = tiltItems.map((item) => {
-      const move = (event: PointerEvent) => {
-        const bounds = item.getBoundingClientRect();
-        const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-        const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-        item.style.setProperty("--tilt-x", `${y * -7}deg`);
-        item.style.setProperty("--tilt-y", `${x * 9}deg`);
-      };
-      const reset = () => {
-        item.style.setProperty("--tilt-x", "0deg");
-        item.style.setProperty("--tilt-y", "0deg");
-      };
-      item.addEventListener("pointermove", move);
-      item.addEventListener("pointerleave", reset);
-      return () => {
-        item.removeEventListener("pointermove", move);
-        item.removeEventListener("pointerleave", reset);
-      };
-    });
-    return () => cleanups.forEach((cleanup) => cleanup());
-  }, []);
 
   return (
-    <main>
-      <div className="scroll-progress" aria-hidden="true" />
-      <div className={`site-lighting ${soundOn ? "is-live" : ""}`} aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </div>
-      <nav className="nav" aria-label="Primary navigation">
-        <a className="brand" href="#top" aria-label="DJ Abhishek home">
-          <span className="brand-mark"><span>DJ</span></span>
-          <span className="brand-copy">DJ <b>ABHISHEK</b></span>
-        </a>
-        <div className={`nav-links ${menuOpen ? "open" : ""}`}>
-          <a href="#story" onClick={() => setMenuOpen(false)}>Story</a>
-          <a href="#shows" onClick={() => setMenuOpen(false)}>Shows</a>
-          <a
-            href="#gallery"
-            onClick={() => {
-              setMenuOpen(false);
-              setGalleryOpen(true);
-              setGalleryPlaying(true);
-            }}
-          >
-            Gallery
-          </a>
-          <a href="#sound" onClick={() => setMenuOpen(false)}>Sound</a>
-          <a className="nav-cta" href="#book" onClick={() => setMenuOpen(false)}>Book now ↗</a>
-        </div>
-        <button
-          type="button"
-          className="menu"
-          aria-label="Toggle navigation"
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? "×" : "☰"}
-        </button>
-      </nav>
-
-      <section className="hero" id="top" ref={heroRef}>
-        <div className="hero-bg" aria-hidden="true" />
-        <div className="orb orb-one" />
-        <div className="orb orb-two" />
-        <div className={`dj-atmosphere ${soundOn ? "is-live" : ""}`} aria-hidden="true">
-          <div className="stage-rig">
-            {Array.from({ length: 7 }, (_, index) => <span key={index} />)}
-          </div>
-          <i className="stage-beam beam-left" />
-          <i className="stage-beam beam-right" />
-          <i className="stage-beam beam-center-left" />
-          <i className="stage-beam beam-center-right" />
-          <div className="led-wall">
-            {Array.from({ length: 18 }, (_, index) => <span key={index} />)}
-          </div>
-          <div className="laser laser-one" />
-          <div className="laser laser-two" />
-          <div className="laser laser-three" />
-          <div className="hero-equalizer">
-            {Array.from({ length: 12 }, (_, index) => <span key={index} />)}
-          </div>
-          <div className="bass-ring" />
-          <div className="stage-floor" />
-          <div className="stage-strobe" />
-        </div>
-        <div className="hero-content">
-          <p className="eyebrow"><span /> DJ · REMIXER · PRODUCER</p>
-          <h1>
-            <span>Turn up</span>
-            <strong>the night.</strong>
-          </h1>
-          <p className="hero-copy">
-            India&apos;s high-energy open-format artist, moving dance floors since 2011.
-          </p>
-          <div className="hero-actions">
-            <a className="button primary" href="#book">Book the night <span>↗</span></a>
-            <a className="button ghost" href="#shows">Explore the journey <span>↓</span></a>
-          </div>
-        </div>
-        <div className="hero-side">
-          <div className="since"><b>13+</b><span>years<br />on stage</span></div>
-          <div className="line" />
-          <div className="scroll-copy">SCROLL TO FEEL THE SET</div>
-        </div>
-        <button
-          type="button"
-          className="sound-toggle"
-          onClick={() => setSoundOn(!soundOn)}
-          aria-label={soundOn ? "Mute visualizer" : "Activate visualizer"}
-        >
-          <span className={`bars ${soundOn ? "playing" : ""}`}>
-            {[1, 2, 3, 4].map((bar) => <i key={bar} />)}
-          </span>
-          {soundOn ? "LIVE ENERGY" : "PAUSED"}
-        </button>
-      </section>
-
-      <section className="ticker" aria-label="DJ genres">
-        <div>
-          {[...genres, ...genres].map((genre, i) => (
-            <span key={`${genre}-${i}`}>{genre} <b>✦</b></span>
-          ))}
-        </div>
-      </section>
-
-      <section className="story section" id="story" data-reveal>
-        <div className="section-index artist-index"><span>01</span> / THE ARTIST</div>
-        <div className="story-grid">
-          <div className="portrait-stage" data-reveal>
-            <div className="portrait-card" data-tilt>
-              <img
-                src="/images/portrait-1400.jpg"
-                alt="DJ Abhishek in a black jacket"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-            <div className="stamp">SINCE<br /><b>2011</b></div>
-            <span className="vertical-label">PUNE · INDIA · WORLDWIDE</span>
-          </div>
-          <div className="story-copy" data-reveal>
-            <p className="kicker">CONFIDENCE IN EVERY DROP</p>
-            <h2>Built for the<br /><em>big moment.</em></h2>
-            <p className="lead">
-              DJ Abhishek is a Pune-based DJ, remixer and producer known for
-              fearless transitions, sharp crowd reading and sets engineered to peak.
-            </p>
-            <p>
-              From luxury resorts and city clubs to national sports leagues and an
-              international show at Hyatt Kathmandu, every room becomes his stage.
-            </p>
-            <div className="artist-note" aria-label="DJ Abhishek performance strengths">
-              <span>Open-format</span>
-              <span>Guest-first</span>
-              <span>Event-ready</span>
-            </div>
-            <div className="stats">
-              <div><b>40+</b><span>Premium venues</span></div>
-              <div><b>10+</b><span>Cities performed</span></div>
-              <div><b>03</b><span>Sports leagues</span></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="confidence section" data-reveal>
-        <div className="section-index">04 / WHY BOOK ABHISHEK</div>
-        <div className="confidence-head">
-          <div>
-            <p className="kicker">WHAT A CUSTOMER NEEDS TO KNOW</p>
-            <h2>Big energy.<br /><em>Zero guesswork.</em></h2>
-          </div>
-          <a href="#book">Check booking options ↗</a>
-        </div>
-        <div className="confidence-grid">
-          {bookingFacts.map((fact) => (
-            <article key={fact.number} data-tilt>
-              <span>{fact.number}</span>
-              <h3>{fact.title}</h3>
-              <p>{fact.copy}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="sound section" id="sound" data-reveal>
-        <div className="section-index">05 / THE SOUND</div>
-        <div className="sound-head">
-          <h2>One booth.<br /><em>Every frequency.</em></h2>
-          <p>An open-format journey grounded in Bollywood and built to move without borders.</p>
-        </div>
-        <div className="genre-stack">
-          {genres.map((genre, index) => (
-            <div className="genre" key={genre}>
-              <span>0{index + 1}</span>
-              <h3>{genre}</h3>
-              <i style={{ width: `${95 - index * 7}%` }} />
-              <b>{index % 2 ? "NIGHT DRIVE" : "PEAK HOUR"}</b>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="shows section" id="shows" data-reveal>
-        <div className="section-index">02 / PLAYED HERE</div>
-        <div className="shows-head">
-          <h2>From Pune<br />to <em>everywhere.</em></h2>
-          <p>Hotels, destination resorts, arenas and city nights across India and beyond.</p>
-        </div>
-        <div className="city-grid">
-          {cities.map((city, index) => (
-            <article className="city-card" key={city.name} data-tilt>
-              <img
-                className="city-image"
-                src={city.img}
-                alt=""
-                loading="lazy"
-                decoding="async"
-              />
-              <span>0{index + 1}</span>
-              <div>
-                <h3>{city.name}</h3>
-                <p>{city.note}</p>
-              </div>
-              <b>↗</b>
-            </article>
-          ))}
-        </div>
-        <div className="credits">
-          <span>OFFICIAL DJ FOR</span>
-          <b>MPL</b>
-          <b>ULTIMATE TABLE TENNIS 2023</b>
-          <b>ULTIMATE KHO KHO 2022</b>
-        </div>
-      </section>
-
-      <section className="gallery section" id="gallery" data-reveal>
-        <div className="section-index">03 / EVENT ARCHIVE</div>
-        <div className="gallery-head">
-          <div>
-            <p className="kicker">MOMENTS FROM THE BOOTH</p>
-            <h2>Lights. Crowd.<br /><em>Full volume.</em></h2>
-          </div>
-          <p>
-            Open the event picker, pause it anywhere, then select a photo to view it full size.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="gallery-launch"
-          onClick={() => {
-            setGalleryOpen(!galleryOpen);
-            setGalleryPlaying(true);
-          }}
-          aria-expanded={galleryOpen}
-        >
-          <span>{galleryOpen ? "Close gallery" : "Open event gallery"}</span>
-          <b>{galleryOpen ? "×" : "→"}</b>
-        </button>
-        {galleryOpen && (
-          <div className="gallery-picker">
-            <div className="gallery-toolbar">
-              <div className="gallery-filters" aria-label="Filter events">
-                {["All", "Club", "Festival", "Wedding", "Sports"].map((filter) => (
-                  <button
-                    type="button"
-                    key={filter}
-                    className={galleryFilter === filter ? "active" : ""}
-                    onClick={() => {
-                      setGalleryFilter(filter);
-                      setGalleryPlaying(false);
-                      galleryTrackRef.current?.scrollTo({ left: 0, behavior: "smooth" });
-                    }}
-                    aria-pressed={galleryFilter === filter}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
-              <div className="gallery-controls">
-                <button type="button" onClick={() => { setGalleryPlaying(false); scrollGallery(-1); }} aria-label="Previous gallery photos">←</button>
-                <button type="button" className="play-control" onClick={() => setGalleryPlaying(!galleryPlaying)}>
-                  {galleryPlaying ? "Pause" : "Play"}
-                </button>
-                <button type="button" onClick={() => { setGalleryPlaying(false); scrollGallery(1); }} aria-label="Next gallery photos">→</button>
-              </div>
-            </div>
-            <div
-              className="gallery-track"
-              ref={galleryTrackRef}
-              onPointerDown={() => setGalleryPlaying(false)}
-              onWheel={() => setGalleryPlaying(false)}
-            >
-              {visibleEvents.map((event) => (
-                <button
-                  type="button"
-                  className="gallery-card"
-                  key={event.title}
-                  onClick={() => {
-                    setGalleryPlaying(false);
-                    setSelectedEvent(event);
-                  }}
-                  aria-label={`View ${event.title} event`}
-                >
-                  <img src={event.img} alt="" loading="lazy" decoding="async" style={{ objectPosition: event.position }} />
-                  <span className="gallery-type">{event.type}</span>
-                  <span className="gallery-meta">
-                    <strong>{event.title}</strong>
-                    <small>{event.city} · {event.date}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+    <main ref={root}>
+      <AnimatePresence>
+        {!loaded && (
+          <motion.div className="preloader" exit={{ opacity: 0 }} transition={{ duration: .7 }}>
+            <div className="preloader-mark">A<span>.</span></div>
+            <p>ENTERING THE WORLD OF</p>
+            <div className="preloader-line"><i /></div>
+          </motion.div>
         )}
-      </section>
+      </AnimatePresence>
 
-      <section className="booking" id="book" data-reveal>
-        <div className="booking-noise" />
-        <div className="booking-content">
-          <p className="kicker">YOUR CROWD. HIS FREQUENCY.</p>
-          <h2>Ready to make<br />it <em>unforgettable?</em></h2>
-          <form className="booking-form" onSubmit={sendEmail} data-tilt>
-            <label>
-              <span>Your name</span>
-              <input
-                type="text"
-                autoComplete="name"
-                placeholder="Name"
-                value={booking.name}
-                onChange={(event) => setBooking({ ...booking, name: event.target.value })}
-              />
-            </label>
-            <label>
-              <span>Event type</span>
-              <select value={booking.event} onChange={(event) => setBooking({ ...booking, event: event.target.value })}>
-                <option>Wedding</option>
-                <option>Club night</option>
-                <option>Corporate event</option>
-                <option>Festival</option>
-                <option>Private party</option>
-              </select>
-            </label>
-            <label>
-              <span>Event date</span>
-              <input type="date" value={booking.date} onChange={(event) => setBooking({ ...booking, date: event.target.value })} />
-            </label>
-            <label>
-              <span>Event city</span>
-              <input
-                type="text"
-                autoComplete="address-level2"
-                placeholder="City"
-                value={booking.city}
-                onChange={(event) => setBooking({ ...booking, city: event.target.value })}
-              />
-            </label>
-            <button className="booking-button" type="submit">
-              <span>Send by email</span><b>↗</b>
-            </button>
-            <a className="booking-button whatsapp" href={whatsappUrl} target="_blank" rel="noreferrer">
-              <span>Continue on WhatsApp</span><b>↗</b>
-            </a>
-          </form>
-          <div className="contact-row">
-            <a href="https://instagram.com/deejay_abhii" target="_blank" rel="noreferrer">Instagram ↗</a>
-            <a href="https://facebook.com/abhishek.nik.7" target="_blank" rel="noreferrer">Facebook ↗</a>
-            <a href="mailto:abhinikam47@gmail.com">abhinikam47@gmail.com</a>
-          </div>
+      <header className="topbar">
+        <a className="wordmark" href="#top" aria-label="DJ Abhishek home">ABHISHEK<span>.</span></a>
+        <nav className={menuOpen ? "open" : ""} aria-label="Primary navigation">
+          <a href="#tracks" onClick={() => setMenuOpen(false)}>Tracks</a>
+          <a href="#world" onClick={() => setMenuOpen(false)}>World Tour</a>
+          <a href="#highlights" onClick={() => setMenuOpen(false)}>Highlights</a>
+          <a href="#gallery" onClick={() => setMenuOpen(false)}>Gallery</a>
+          <a href="#booking" onClick={() => setMenuOpen(false)}>Booking</a>
+        </nav>
+        <div className="topbar-actions">
+          <button className={`audio-control ${soundOn ? "on" : ""}`} onClick={() => setSoundOn(!soundOn)} aria-label={soundOn ? "Mute ambient audio" : "Unmute ambient audio"}>
+            <span>{Array.from({ length: 4 }, (_, index) => <i key={index} />)}</span>
+            {soundOn ? "SOUND ON" : "SOUND OFF"}
+          </button>
+          <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label="Toggle menu">
+            <i /><i />
+          </button>
         </div>
-        <div className="booking-monogram">A</div>
+      </header>
+
+      <section className="hero" id="top" aria-label="DJ Abhishek cinematic introduction">
+        <div className="hero-brand-ghost" aria-hidden="true">DJ ABHISHEK</div>
+        <DeckScene active={soundOn} />
+        <div className="hero-copy-block">
+          <p className="micro-label">DJ · REMIXER · PRODUCER</p>
+          <h1><span>DJ</span><em>Abhishek.</em></h1>
+          <p className="hero-intro">An interactive performance from Pune, India.<br />Commanding floors since 2011.</p>
+        </div>
+        <div className="hero-meta">
+          <span>01 / 06</span>
+          <span>SCROLL TO ENTER</span>
+          <i />
+        </div>
+        <div className="grain" aria-hidden="true" />
       </section>
 
-      {selectedEvent && (
-        <div
-          className="lightbox"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${selectedEvent.title} event preview`}
-          onClick={() => setSelectedEvent(null)}
-        >
-          <button type="button" className="lightbox-close" onClick={() => setSelectedEvent(null)} aria-label="Close gallery preview">×</button>
-          <button type="button" className="lightbox-arrow prev" onClick={(event) => { event.stopPropagation(); selectAdjacentEvent(-1); }} aria-label="Previous event">←</button>
-          <div className="lightbox-frame" onClick={(event) => event.stopPropagation()}>
-            <img
-              src={selectedEvent.img}
-              alt={`${selectedEvent.title}, ${selectedEvent.city}`}
-              decoding="async"
-              style={{ objectPosition: selectedEvent.position }}
-            />
-            <div className="lightbox-caption">
-              <span>{selectedEvent.type}</span>
-              <h3>{selectedEvent.title}</h3>
-              <p>{selectedEvent.city} · {selectedEvent.date}</p>
+      <section className="marquee" aria-hidden="true">
+        <div className="marquee-track">
+          {[0, 1].map((copy) => (
+            <div className="marquee-set" key={copy}>
+              <span className="solid">BOLLYWOOD</span><i>✦</i>
+              <span className="hollow">HOUSE</span><i>✦</i>
+              <span className="solid">HIP-HOP</span><i>✦</i>
+              <span className="hollow">MOOMBAHTON</span><i>✦</i>
+              <span className="solid">TECH</span><i>✦</i>
+              <span className="hollow">POP</span><i>✦</i>
             </div>
-          </div>
-          <button type="button" className="lightbox-arrow next" onClick={(event) => { event.stopPropagation(); selectAdjacentEvent(1); }} aria-label="Next event">→</button>
+          ))}
         </div>
-      )}
+      </section>
 
-      <section className="faq section" data-reveal>
-        <div className="section-index">06 / BEFORE YOU BOOK</div>
-        <div className="faq-layout">
-          <div className="faq-title">
-            <p className="kicker">THE USEFUL DETAILS</p>
-            <h2>Quick<br /><em>answers.</em></h2>
-            <p>Everything an event planner usually wants to know before the first call.</p>
+      <section className="chapter tracks" id="tracks">
+        <div className="chapter-intro" data-cinematic>
+          <p className="section-label"><span>01</span> FEATURED TRACKS</p>
+          <h2>Sound<br /><em>in motion</em></h2>
+          <p>Four frequencies. Four rooms. One instinct: knowing exactly when the floor is ready to move.</p>
+        </div>
+        <div className="track-list">
+          {tracks.map((track, index) => (
+            <article className={activeTrack === index ? "active" : ""} key={track.title} data-cinematic>
+              <button className="track-play" onClick={() => setActiveTrack(activeTrack === index ? null : index)} aria-label={`${activeTrack === index ? "Pause" : "Preview"} ${track.title}`}>
+                <span>{activeTrack === index ? "Ⅱ" : "▶"}</span>
+              </button>
+              <div className="vinyl" aria-hidden="true"><i /><b>{track.n}</b></div>
+              <div className="track-name"><small>{track.genre}</small><h3>{track.title}</h3></div>
+              <div className="track-wave" aria-hidden="true">{Array.from({ length: 30 }, (_, i) => <i key={i} style={{ "--h": `${18 + ((i * 17) % 58)}%` } as React.CSSProperties} />)}</div>
+              <div className="track-time">{track.year}<span>{track.duration}</span></div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="world" id="world">
+        <div className="world-layout">
+          <div className="world-left" data-cinematic>
+            <div className="world-copy">
+              <p className="section-label"><span>02</span> LIVE AROUND THE WORLD</p>
+              <h2><span>Every</span><span>room,</span><span><em>every</em> floor</span></h2>
+            </div>
+            <figure className="world-image">
+              <img src="/images/event-green-jacket.jpg" alt="DJ Abhishek performing at a luxury destination venue" loading="lazy" />
+              <figcaption><span>150+</span> RESIDENCIES · INDIA & NEPAL</figcaption>
+            </figure>
           </div>
-          <div className="faq-list">
-            <details>
-              <summary>What events can DJ Abhishek perform at?<span>+</span></summary>
-              <p>Weddings, private celebrations, clubs, corporate events, hotels, resorts, festivals and sports events.</p>
-            </details>
-            <details>
-              <summary>Does he travel outside Pune?<span>+</span></summary>
-              <p>Yes. Travel, accommodation and food arrangements apply for events outside Pune.</p>
-            </details>
-            <details>
-              <summary>What music formats are available?<span>+</span></summary>
-              <p>Both DJing and VDJing, with Bollywood as the base and house, pop, hip-hop, tech and moombahton in the mix.</p>
-            </details>
-            <details>
-              <summary>What equipment is required?<span>+</span></summary>
-              <p>A Pioneer 2000NXS2 setup, a quality microphone and two monitors at the DJ booth.</p>
-            </details>
-            <details>
-              <summary>How are performance charges decided?<span>+</span></summary>
-              <p>Pricing depends on the event format, location, festival period and special-date demand. Send the date and city for an accurate quote.</p>
-            </details>
+          <div className="city-list" data-cinematic>
+            {cities.map(([city, country, venue, category], index) => (
+              <article key={city} className={index === 0 ? "featured" : ""}>
+                <i className="city-pin" aria-hidden="true" />
+                <div className="city-name"><h3>{city}</h3><p>{country}</p></div>
+                <small>{venue}</small>
+                <span>{category}</span>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      <aside className={`contact-dock ${contactOpen ? "open" : ""}`} aria-label="Quick contact">
-        <div className="contact-actions">
-          <a href={whatsappUrl} target="_blank" rel="noreferrer" aria-label="Contact on WhatsApp">
-            <span>WhatsApp</span><b>WA</b>
-          </a>
-          <a href="mailto:abhinikam47@gmail.com?subject=DJ%20booking%20enquiry" aria-label="Send booking email">
-            <span>Email</span><b>@</b>
-          </a>
-          <a href="https://instagram.com/deejay_abhii" target="_blank" rel="noreferrer" aria-label="Open Instagram">
-            <span>Instagram</span><b>IG</b>
-          </a>
+      <section className="chapter highlights" id="highlights">
+        <div className="chapter-intro wide" data-cinematic>
+          <p className="section-label"><span>03</span> CAREER HIGHLIGHTS</p>
+          <h2>The moments<br /><em>that defined it.</em></h2>
         </div>
-        <button
-          className="contact-trigger"
-          onClick={() => setContactOpen(!contactOpen)}
-          aria-expanded={contactOpen}
-          aria-label={contactOpen ? "Close contact options" : "Open contact options"}
-        >
-          {contactOpen ? "×" : "↗"} <span>{contactOpen ? "Close" : "Book"}</span>
-        </button>
-      </aside>
+        <div className="milestone-grid">
+          {highlights.map(([n, title, copy]) => (
+            <article key={n} data-cinematic><span>{n}</span><div><h3>{title}</h3><p>{copy}</p></div><i>↗</i></article>
+          ))}
+        </div>
+        <div className="statement" data-cinematic><span>2011</span><p>A DECADE OF<br />READING THE ROOM.</p><span>2026</span></div>
+      </section>
 
-      <footer>
-        <div className="brand footer-brand">
-          <span className="brand-mark"><span>DJ</span></span>
-          <span className="brand-copy">DJ <b>ABHISHEK</b></span>
+      <section className="gallery" id="gallery">
+        <div className="gallery-head" data-cinematic>
+          <p className="section-label"><span>04</span> GALLERY</p>
+          <h2>Inside<br /><em>the night.</em></h2>
         </div>
-        <p>DJ · REMIXER · PRODUCER · PUNE, INDIA</p>
-        <a href="#top">BACK TO TOP ↑</a>
-      </footer>
+        <div className="gallery-flow">
+          {gallery.map(([src, title, n], index) => (
+            <figure className={`gallery-frame frame-${index + 1}`} key={src}>
+              <img src={src} alt={`${title} — DJ Abhishek live performance`} loading="lazy" />
+              <figcaption><span>{n}</span>{title}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      <section className="booking" id="booking">
+        <div className="booking-portrait"><img src="/images/portrait-1400.jpg" alt="DJ Abhishek" loading="lazy" /></div>
+        <div className="booking-glow" aria-hidden="true" />
+        <div className="booking-content" data-cinematic>
+          <p className="section-label"><span>05</span> BOOKING & CONTACT</p>
+          <h2>Bring the<br /><em>experience.</em></h2>
+          <p>A DJ, remixer and producer from India — blending Bollywood roots with House, Hip-Hop, Tech and Moombahton into a sound that moves every floor.</p>
+          <form onSubmit={submitBooking}>
+            <button type="submit"><span>REQUEST A BOOKING</span><i>↗</i></button>
+          </form>
+          <a className="email-link" href="mailto:abhinikam47@gmail.com">ABHINIKAM47@GMAIL.COM</a>
+        </div>
+        <footer>
+          <div className="wordmark">ABHISHEK<span>.</span></div>
+          <div className="socials">
+            <a href="https://www.instagram.com/deejay_abhii" target="_blank" rel="noreferrer">Instagram ↗</a>
+            <a href="#" aria-label="Spotify profile coming soon">Spotify ↗</a>
+            <a href="#" aria-label="YouTube profile coming soon">YouTube ↗</a>
+            <a href="#" aria-label="SoundCloud profile coming soon">SoundCloud ↗</a>
+          </div>
+          <p>© 2026 DJ ABHISHEK · PUNE, INDIA</p>
+        </footer>
+      </section>
     </main>
   );
 }

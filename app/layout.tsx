@@ -12,21 +12,21 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: base,
     title: "DJ Abhishek | DJ, Remixer & Producer",
     description:
-      "DJ Abhishek - Pune-based DJ, remixer and producer performing Bollywood, house, pop, hip-hop, tech and moombahton since 2011.",
+      "Enter the cinematic world of DJ Abhishek — Pune-based DJ, remixer and producer commanding dance floors since 2011.",
     icons: {
       icon: "/favicon.svg",
       shortcut: "/favicon.svg",
     },
     openGraph: {
-      title: "DJ Abhishek | Turn Up The Night",
-      description: "DJ, remixer and producer moving dance floors since 2011.",
+      title: "DJ Abhishek | Sound in Motion",
+      description: "A cinematic performance. DJ, remixer and producer commanding dance floors since 2011.",
       type: "website",
       images: [{ url: new URL("/images/og.png", base).toString(), width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "DJ Abhishek | Turn Up The Night",
-      description: "DJ, remixer and producer moving dance floors since 2011.",
+      title: "DJ Abhishek | Sound in Motion",
+      description: "A cinematic performance from Pune, India.",
       images: [new URL("/images/og.png", base).toString()],
     },
   };
