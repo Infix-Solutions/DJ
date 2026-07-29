@@ -12,7 +12,7 @@ export function WorldSection({ cities }: { cities: City[] }) {
             <h2><span>Every</span><span>room,</span><span><em>every</em> floor</span></h2>
           </div>
           <figure className="world-image">
-            <img src="/images/event-green-jacket.jpg" alt="DJ Abhishek performing at a luxury destination venue" loading="lazy" />
+            <img src="/images/event-green-jacket.jpg" alt="DJ NO-One performing at a luxury destination venue" loading="lazy" />
             <figcaption><span>150+</span> RESIDENCIES · INDIA & NEPAL</figcaption>
           </figure>
         </div>

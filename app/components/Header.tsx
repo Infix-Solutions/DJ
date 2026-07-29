@@ -19,7 +19,7 @@ const navigation = [
 export function Header({ menuOpen, soundOn, onMenuToggle, onMenuClose, onSoundToggle }: HeaderProps) {
   return (
     <header className="topbar">
-      <a className="brand-logo-link" href="#top" aria-label="DJ Abhishek home">
+      <a className="brand-logo-link" href="#top" aria-label="DJ NO-One home">
         <img className="brand-logo brand-logo-nav" src="/images/dj-a-logo.png" alt="" />
       </a>
       <nav className={menuOpen ? "open" : ""} aria-label="Primary navigation">

@@ -9,12 +9,12 @@ const DeckScene = dynamic(() => import("./DeckScene"), {
 
 export function Hero({ soundOn }: { soundOn: boolean }) {
   return (
-    <section className="hero" id="top" aria-label="DJ Abhishek cinematic introduction">
-      <div className="hero-brand-ghost" aria-hidden="true">DJ ABHISHEK</div>
+    <section className="hero" id="top" aria-label="DJ NO-One cinematic introduction">
+      <div className="hero-brand-ghost" aria-hidden="true">DJ NO-One</div>
       <DeckScene active={soundOn} />
       <div className="hero-copy-block">
         <p className="micro-label">DJ · REMIXER · PRODUCER</p>
-        <h1><span>DJ</span><em>Abhishek.</em></h1>
+        <h1><span>DJ</span><em>NO-One.</em></h1>
         <p className="hero-intro">An interactive performance from Pune, India.<br />Commanding floors since 2011.</p>
       </div>
       <div className="hero-meta">

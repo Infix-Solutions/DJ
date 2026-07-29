@@ -13,12 +13,12 @@ async function render() {
   );
 }
 
-test("server-renders the cinematic DJ Abhishek website", async () => {
+test("server-renders the cinematic DJ NO-One website", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /<title>DJ Abhishek \| DJ, Remixer &amp; Producer<\/title>/i);
+  assert.match(html, /<title>DJ NO-One \| DJ, Remixer &amp; Producer<\/title>/i);
   assert.match(html, /aria-label="Primary navigation"/);
   assert.match(html, /href="#tracks">Tracks<\/a>/);
   assert.match(html, /href="#world">Shows<\/a>/);
