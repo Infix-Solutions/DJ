@@ -9,6 +9,7 @@ import * as THREE from "three";
 const NEON_GOLD = new THREE.Color(3.2, 1.55, .32);
 
 function NeonLogo({ active }: { active: boolean }) {
+  const group = useRef<THREE.Group>(null);
   const material = useRef<THREE.MeshBasicMaterial>(null);
   const sourceTexture = useTexture("/images/dj-a-logo.png");
   const texture = useMemo(() => {
@@ -22,7 +23,11 @@ function NeonLogo({ active }: { active: boolean }) {
     uIntensity: { value: 1 },
   }), [texture]);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock, size }) => {
+    if (group.current) {
+      const targetY = size.width <= 580 ? .82 : .55;
+      group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, targetY, .08);
+    }
     if (material.current) {
       const pulse = Math.sin(clock.elapsedTime * 1.15) * .035;
       const targetOpacity = active ? .8 + pulse : 0;
@@ -32,7 +37,7 @@ function NeonLogo({ active }: { active: boolean }) {
   });
 
   return (
-    <group position={[0, .55, -2.55]} scale={[2.15, 2.15, 1]}>
+    <group ref={group} position={[0, .55, -2.55]} scale={[2.15, 2.15, 1]}>
       <mesh position={[0, 0, -.02]} renderOrder={-1}>
         <planeGeometry args={[1.16, 1.16]} />
         <shaderMaterial
