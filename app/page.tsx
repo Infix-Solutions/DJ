@@ -7,6 +7,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { FaInstagram, FaSoundcloud, FaSpotify, FaYoutube } from "react-icons/fa";
 
 const DeckScene = dynamic(() => import("./components/DeckScene"), {
   ssr: false,
@@ -39,11 +40,11 @@ const highlights = [
 ];
 
 const gallery = [
-  ["/images/event-silver-jacket.jpg", "THE ARRIVAL", "01"],
-  ["/images/event-blue-jacket.jpg", "BLUE HOUR", "02"],
-  ["/images/event-booth.jpg", "BEHIND THE DECKS", "03"],
-  ["/images/event-black-jacket.jpg", "AFTER DARK", "04"],
-  ["/images/event-green-jacket.jpg", "THE RESIDENCY", "05"],
+  ["/images/gallery-dj-01.jpg", "MAIN STAGE", "01"],
+  ["/images/gallery-dj-02.jpg", "OPEN AIR", "02"],
+  ["/images/gallery-dj-03.jpg", "SEA OF LIGHTS", "03"],
+  ["/images/gallery-dj-04.jpg", "AFTER HOURS", "04"],
+  ["/images/gallery-dj-05.jpg", "FROM THE BOOTH", "05"],
 ];
 
 export default function Home() {
@@ -52,6 +53,8 @@ export default function Home() {
   const [activeTrack, setActiveTrack] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
   const root = useRef<HTMLElement>(null);
+  const cursorDot = useRef<HTMLDivElement>(null);
+  const cursorRing = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -115,6 +118,66 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!window.matchMedia("(pointer: fine)").matches) return;
+
+    const dot = cursorDot.current;
+    const ring = cursorRing.current;
+    if (!dot || !ring) return;
+
+    let targetX = 0;
+    let targetY = 0;
+    let ringX = 0;
+    let ringY = 0;
+    let visible = false;
+    let frame = 0;
+
+    document.documentElement.classList.add("custom-cursor-active");
+
+    const moveCursor = (event: PointerEvent) => {
+      targetX = event.clientX;
+      targetY = event.clientY;
+      if (!visible) {
+        ringX = targetX;
+        ringY = targetY;
+        visible = true;
+        dot.classList.add("is-visible");
+        ring.classList.add("is-visible");
+      }
+
+      dot.style.transform = `translate3d(${targetX}px, ${targetY}px, 0) translate(-50%, -50%)`;
+      const interactive = event.target instanceof Element && Boolean(event.target.closest("a, button, input, textarea, select, [role='button']"));
+      dot.classList.toggle("is-hovering", interactive);
+      ring.classList.toggle("is-hovering", interactive);
+    };
+
+    const hideCursor = () => {
+      visible = false;
+      dot.classList.remove("is-visible");
+      ring.classList.remove("is-visible");
+    };
+
+    const animateRing = () => {
+      ringX += (targetX - ringX) * .18;
+      ringY += (targetY - ringY) * .18;
+      ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
+      frame = requestAnimationFrame(animateRing);
+    };
+
+    frame = requestAnimationFrame(animateRing);
+    window.addEventListener("pointermove", moveCursor);
+    window.addEventListener("blur", hideCursor);
+    document.documentElement.addEventListener("mouseleave", hideCursor);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("pointermove", moveCursor);
+      window.removeEventListener("blur", hideCursor);
+      document.documentElement.removeEventListener("mouseleave", hideCursor);
+      document.documentElement.classList.remove("custom-cursor-active");
+    };
+  }, []);
+
   const submitBooking = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     window.location.href = "mailto:abhinikam47@gmail.com?subject=Booking%20Enquiry%20%E2%80%94%20DJ%20Abhishek";
@@ -122,6 +185,8 @@ export default function Home() {
 
   return (
     <main ref={root}>
+      <div ref={cursorRing} className="custom-cursor-ring" aria-hidden="true" />
+      <div ref={cursorDot} className="custom-cursor-dot" aria-hidden="true" />
       <AnimatePresence>
         {!loaded && (
           <motion.div className="preloader" exit={{ opacity: 0 }} transition={{ duration: .7 }}>
@@ -133,7 +198,9 @@ export default function Home() {
       </AnimatePresence>
 
       <header className="topbar">
-        <a className="wordmark" href="#top" aria-label="DJ Abhishek home">ABHISHEK<span>.</span></a>
+        <a className="brand-logo-link" href="#top" aria-label="DJ Abhishek home">
+          <img className="brand-logo brand-logo-nav" src="/images/dj-a-logo.png" alt="" />
+        </a>
         <nav className={menuOpen ? "open" : ""} aria-label="Primary navigation">
           <a href="#tracks" onClick={() => setMenuOpen(false)}>Tracks</a>
           <a href="#world" onClick={() => setMenuOpen(false)}>World Tour</a>
@@ -250,7 +317,7 @@ export default function Home() {
         <div className="gallery-flow">
           {gallery.map(([src, title, n], index) => (
             <figure className={`gallery-frame frame-${index + 1}`} key={src}>
-              <img src={src} alt={`${title} — DJ Abhishek live performance`} loading="lazy" />
+              <img src={src} alt={`${title} — live DJ event atmosphere`} loading="lazy" />
               <figcaption><span>{n}</span>{title}</figcaption>
             </figure>
           ))}
@@ -258,7 +325,7 @@ export default function Home() {
       </section>
 
       <section className="booking" id="booking">
-        <div className="booking-portrait"><img src="/images/portrait-1400.jpg" alt="DJ Abhishek" loading="lazy" /></div>
+        <div className="booking-portrait"><img src="/images/portrait-booking-clean.png" alt="DJ Abhishek" loading="lazy" /></div>
         <div className="booking-glow" aria-hidden="true" />
         <div className="booking-content" data-cinematic>
           <p className="section-label"><span>05</span> BOOKING & CONTACT</p>
@@ -270,12 +337,14 @@ export default function Home() {
           <a className="email-link" href="mailto:abhinikam47@gmail.com">ABHINIKAM47@GMAIL.COM</a>
         </div>
         <footer>
-          <div className="wordmark">ABHISHEK<span>.</span></div>
+          <div className="footer-brand" aria-label="DJ Abhishek">
+            <img className="brand-logo brand-logo-footer" src="/images/dj-a-logo.png" alt="" />
+          </div>
           <div className="socials">
-            <a href="https://www.instagram.com/deejay_abhii" target="_blank" rel="noreferrer">Instagram ↗</a>
-            <a href="#" aria-label="Spotify profile coming soon">Spotify ↗</a>
-            <a href="#" aria-label="YouTube profile coming soon">YouTube ↗</a>
-            <a href="#" aria-label="SoundCloud profile coming soon">SoundCloud ↗</a>
+            <a href="https://www.instagram.com/deejay_abhii" target="_blank" rel="noreferrer"><FaInstagram aria-hidden="true" /><span>Instagram</span></a>
+            <a href="#" aria-label="Spotify profile coming soon"><FaSpotify aria-hidden="true" /><span>Spotify</span></a>
+            <a href="#" aria-label="YouTube profile coming soon"><FaYoutube aria-hidden="true" /><span>YouTube</span></a>
+            <a href="#" aria-label="SoundCloud profile coming soon"><FaSoundcloud aria-hidden="true" /><span>SoundCloud</span></a>
           </div>
           <p>© 2026 DJ ABHISHEK · PUNE, INDIA</p>
         </footer>
