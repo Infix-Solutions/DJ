@@ -1,10 +1,154 @@
 "use client";
 
-import { Environment, Float, Sparkles } from "@react-three/drei";
+import { Environment, Float, useTexture } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import { Suspense, useMemo, useRef } from "react";
 import * as THREE from "three";
+
+const NEON_GOLD = new THREE.Color(3.2, 1.55, .32);
+
+function NeonLogo({ active }: { active: boolean }) {
+  const group = useRef<THREE.Group>(null);
+  const material = useRef<THREE.MeshBasicMaterial>(null);
+  const sourceTexture = useTexture("/images/dj-a-logo.png");
+  const texture = useMemo(() => {
+    sourceTexture.colorSpace = THREE.SRGBColorSpace;
+    sourceTexture.anisotropy = 4;
+    sourceTexture.needsUpdate = true;
+    return sourceTexture;
+  }, [sourceTexture]);
+  const haloUniforms = useMemo(() => ({
+    uMap: { value: texture },
+    uIntensity: { value: 1 },
+  }), [texture]);
+
+  useFrame(({ clock, size }) => {
+    if (group.current) {
+      const targetY = size.width <= 580 ? .82 : .55;
+      group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, targetY, .08);
+    }
+    if (material.current) {
+      const pulse = Math.sin(clock.elapsedTime * 1.15) * .035;
+      const targetOpacity = active ? .8 + pulse : 0;
+      material.current.opacity = THREE.MathUtils.lerp(material.current.opacity, targetOpacity, .1);
+    }
+    haloUniforms.uIntensity.value = THREE.MathUtils.lerp(haloUniforms.uIntensity.value, active ? 1 : 0, .1);
+  });
+
+  return (
+    <group ref={group} position={[0, .55, -2.55]} scale={[2.15, 2.15, 1]}>
+      <mesh position={[0, 0, -.02]} renderOrder={-1}>
+        <planeGeometry args={[1.16, 1.16]} />
+        <shaderMaterial
+          uniforms={haloUniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          toneMapped={false}
+          vertexShader={`
+            varying vec2 vUv;
+            void main() {
+              vUv = uv;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `}
+          fragmentShader={`
+            uniform sampler2D uMap;
+            uniform float uIntensity;
+            varying vec2 vUv;
+            void main() {
+              vec2 uv = (vUv - 0.5) * 1.16 + 0.5;
+              float glow = texture2D(uMap, uv).a * 0.08;
+              glow += texture2D(uMap, uv + vec2( .010, 0.0)).a * 0.09;
+              glow += texture2D(uMap, uv + vec2(-.010, 0.0)).a * 0.09;
+              glow += texture2D(uMap, uv + vec2(0.0,  .010)).a * 0.09;
+              glow += texture2D(uMap, uv + vec2(0.0, -.010)).a * 0.09;
+              glow += texture2D(uMap, uv + vec2( .022,  .022)).a * 0.07;
+              glow += texture2D(uMap, uv + vec2(-.022,  .022)).a * 0.07;
+              glow += texture2D(uMap, uv + vec2( .022, -.022)).a * 0.07;
+              glow += texture2D(uMap, uv + vec2(-.022, -.022)).a * 0.07;
+              glow = smoothstep(0.0, 0.5, glow);
+              gl_FragColor = vec4(2.2, 0.95, 0.16, glow * 0.28 * uIntensity);
+            }
+          `}
+        />
+      </mesh>
+      <mesh renderOrder={0}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial
+          ref={material}
+          map={texture}
+          color={NEON_GOLD}
+          transparent
+          opacity={.76}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function DriftingParticles() {
+  const points = useRef<THREE.Points>(null);
+  const particleData = useMemo(() => {
+    const count = 82;
+    const positions = new Float32Array(count * 3);
+    const baseY = new Float32Array(count);
+    const speeds = new Float32Array(count);
+    const phases = new Float32Array(count);
+    let seed = 14827;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+
+    for (let index = 0; index < count; index += 1) {
+      positions[index * 3] = random() * 15 - 7.5;
+      positions[index * 3 + 1] = random() * 7 - 3.5;
+      positions[index * 3 + 2] = random() * 8 - 3;
+      baseY[index] = positions[index * 3 + 1];
+      speeds[index] = .24 + random() * .34;
+      phases[index] = random() * Math.PI * 2;
+    }
+
+    return { positions, baseY, speeds, phases, count };
+  }, []);
+
+  useFrame(({ clock }, delta) => {
+    if (!points.current) return;
+    const position = points.current.geometry.getAttribute("position") as THREE.BufferAttribute;
+    const values = position.array as Float32Array;
+    const step = Math.min(delta, .05);
+
+    for (let index = 0; index < particleData.count; index += 1) {
+      const offset = index * 3;
+      values[offset] += particleData.speeds[index] * step;
+      if (values[offset] > 7.5) values[offset] = -7.5;
+      values[offset + 1] = particleData.baseY[index] + Math.sin(clock.elapsedTime * .42 + particleData.phases[index]) * .16;
+    }
+    position.needsUpdate = true;
+  });
+
+  return (
+    <points ref={points} frustumCulled={false}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[particleData.positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        color="#ffffff"
+        size={.045}
+        transparent
+        opacity={.48}
+        depthWrite={false}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  );
+}
 
 function Knob({ x, z, active }: { x: number; z: number; active: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
@@ -306,13 +450,23 @@ function Scene({ active }: { active: boolean }) {
   ], []);
   const cable = useMemo(() => new THREE.CatmullRomCurve3(cablePoints), [cablePoints]);
 
-  useFrame(({ pointer, camera, clock }) => {
-    camera.position.x = THREE.MathUtils.lerp(camera.position.x, pointer.x * .55, .025);
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, 4.15 + pointer.y * .22, .025);
+  useFrame(({ pointer, camera, clock, size }) => {
+    const isPhone = size.width <= 580;
+    const isPortraitTablet = size.width <= 900;
+    const isTablet = size.width <= 1200;
+    const targetScale = isPhone ? .62 : isPortraitTablet ? .8 : isTablet ? .9 : 1;
+    const targetCameraZ = isPhone ? 13.8 : isPortraitTablet ? 10.8 : isTablet ? 9.15 : 8.15;
+    const pointerStrength = isPortraitTablet ? .18 : .55;
+
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, pointer.x * pointerStrength, .025);
+    camera.position.y = THREE.MathUtils.lerp(camera.position.y, (isPhone ? 3.55 : 4.15) + pointer.y * .22, .025);
+    camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCameraZ, .04);
     camera.lookAt(0, -.1, 0);
     if (rig.current) {
       const scrollDistance = Math.min(window.scrollY, window.innerHeight * 1.5);
       const scrollAngle = scrollDistance * .00165;
+      const scale = THREE.MathUtils.lerp(rig.current.scale.x, targetScale, .045);
+      rig.current.scale.setScalar(scale);
       rig.current.rotation.y = THREE.MathUtils.lerp(rig.current.rotation.y, scrollAngle, .065);
       rig.current.rotation.x = THREE.MathUtils.lerp(rig.current.rotation.x, Math.sin(scrollAngle) * .055, .055);
       rig.current.rotation.z = Math.sin(clock.elapsedTime * .35) * .008;
@@ -330,6 +484,7 @@ function Scene({ active }: { active: boolean }) {
       <spotLight position={[5, 5, -2]} angle={.5} penumbra={1} intensity={active ? 75 : 28} color="#7f4b86" />
       <pointLight position={[0, 2.5, 5]} intensity={active ? 28 : 15} color="#fff4df" />
       <pointLight position={[0, 1, 2]} intensity={active ? 26 : 9} color="#d18b43" />
+      <pointLight position={[0, .7, -1.5]} intensity={active ? 16 : 0} distance={6} color="#d49a42" />
       <mesh position={[0, -.7, -2.8]} scale={[15, 9, 1]} renderOrder={-1}>
         <planeGeometry args={[1, 1]} />
         <shaderMaterial
@@ -354,6 +509,7 @@ function Scene({ active }: { active: boolean }) {
           `}
         />
       </mesh>
+      <NeonLogo active={active} />
       <Float speed={.65} rotationIntensity={.08} floatIntensity={.14}>
         <group ref={rig} position={[0, -.55, 0]} rotation={[0, 0, 0]}>
           <Turntable x={-2.25} active={active} />
@@ -369,7 +525,7 @@ function Scene({ active }: { active: boolean }) {
           </mesh>
         </group>
       </Float>
-      <Sparkles count={82} scale={[14, 7, 8]} size={1.3} speed={.12} opacity={.42} color="#ffffff" />
+      <DriftingParticles />
       <Environment preset="warehouse" environmentIntensity={.32} />
       <EffectComposer multisampling={0}>
         <Bloom intensity={active ? .48 : .2} luminanceThreshold={.72} mipmapBlur />

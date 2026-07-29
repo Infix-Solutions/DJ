@@ -10,22 +10,22 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: base,
-    title: "DJ Abhishek | DJ, Remixer & Producer",
+    title: "DJ NO-One | DJ, Remixer & Producer",
     description:
-      "Enter the cinematic world of DJ Abhishek — Pune-based DJ, remixer and producer commanding dance floors since 2011.",
+      "Enter the cinematic world of DJ NO-One — Pune-based DJ, remixer and producer commanding dance floors since 2011.",
     icons: {
       icon: "/favicon.svg",
       shortcut: "/favicon.svg",
     },
     openGraph: {
-      title: "DJ Abhishek | Sound in Motion",
+      title: "DJ NO-One | Sound in Motion",
       description: "A cinematic performance. DJ, remixer and producer commanding dance floors since 2011.",
       type: "website",
       images: [{ url: new URL("/images/og.png", base).toString(), width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "DJ Abhishek | Sound in Motion",
+      title: "DJ NO-One | Sound in Motion",
       description: "A cinematic performance from Pune, India.",
       images: [new URL("/images/og.png", base).toString()],
     },
