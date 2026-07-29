@@ -1,0 +1,30 @@
+{
+  // Enables editor validation for Wrangler settings.
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // Name shown in the Cloudflare Workers dashboard.
+  "name": "site-creator-vinext-starter",
+
+  // Locks Cloudflare runtime behavior to this date.
+  "compatibility_date": "2026-07-29",
+
+  // Allows the Worker to use Node-compatible APIs.
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+
+  // Entry point for the Cloudflare Worker.
+  "main": "./worker/index.ts",
+
+  // Static files produced by `vinext build`.
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "none"
+  },
+
+  // Enables vinext’s Cloudflare CDN caching.
+  "cache": {
+    "enabled": true
+  }
+}
