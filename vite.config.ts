@@ -14,7 +14,10 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
 const localBindingConfig = {
   main: "./worker/index.ts",
-  compatibility_flags: ["nodejs_compat"],
+
+  // Do not specify compatibility_flags here.
+  // They are declared in wrangler.jsonc to avoid duplicate nodejs_compat flags.
+
   d1_databases: d1
     ? [
         {
@@ -24,6 +27,7 @@ const localBindingConfig = {
         },
       ]
     : [],
+
   r2_buckets: r2
     ? [
         {
