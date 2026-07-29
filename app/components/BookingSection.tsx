@@ -18,7 +18,12 @@ export function BookingSection() {
         <h2>Bring the<br /><em>experience.</em></h2>
         <p>A DJ, remixer and producer from India — blending Bollywood roots with House, Hip-Hop, Tech and Moombahton into a sound that moves every floor.</p>
         <form onSubmit={submitBooking}>
-          <button type="submit"><span>REQUEST A BOOKING</span><i>↗</i></button>
+          <button type="submit">
+            <span>REQUEST A BOOKING</span>
+            <svg className="arrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 19 19 5M8 5h11v11" />
+            </svg>
+          </button>
         </form>
         <a className="email-link" href="mailto:abhinikam47@gmail.com">ABHINIKAM47@GMAIL.COM</a>
       </div>

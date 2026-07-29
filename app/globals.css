@@ -127,7 +127,7 @@ h2 em { color: transparent; -webkit-text-stroke: 1px var(--gold); font-style: no
 .track-list article > * { position: relative; z-index: 1; }
 .track-play { width: 48px; height: 48px; border: 1px solid #413d36; border-radius: 50%; background: transparent; cursor: pointer; transition: border-color .3s, color .3s; }
 .track-play:hover, article.active .track-play { border-color: var(--gold); color: var(--gold); }
-.track-play span { font-size: 11px; }
+.track-play svg { display: block; width: 12px; height: 14px; margin: auto; fill: currentColor; }
 .vinyl { position: relative; width: 112px; aspect-ratio: 1; border-radius: 50%; background: repeating-radial-gradient(circle,#111 0 3px,#191816 4px 5px); box-shadow: inset 0 0 0 1px #2a2824; animation: spin 8s linear infinite; animation-play-state: paused; }
 .active .vinyl { animation-play-state: running; }
 .vinyl i { position: absolute; inset: 35%; border-radius: 50%; background: var(--gold); }
@@ -186,7 +186,8 @@ h2 em { color: transparent; -webkit-text-stroke: 1px var(--gold); font-style: no
 .milestone-grid article { min-height: 320px; padding: 34px; display: grid; grid-template-columns: 45px 1fr auto; align-items: end; gap: 30px; border-right: 1px solid rgba(0,0,0,.18); border-bottom: 1px solid rgba(0,0,0,.18); transition: background .35s,color .35s; }
 .milestone-grid article:hover { background: #11100e; color: var(--paper); }
 .milestone-grid article > span { align-self: start; color: var(--gold); font-size: 10px; }
-.milestone-grid article i { align-self: start; font-style: normal; font-size: 20px; }
+.arrow-icon { display: block; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.milestone-grid article .arrow-icon { align-self: start; }
 .milestone-grid h3 { margin: 0 0 18px; font-size: clamp(29px,3vw,50px); font-weight: 400; line-height: 1; letter-spacing: -.04em; }
 .milestone-grid p { margin: 0; max-width: 440px; color: #777168; font-size: 13px; line-height: 1.7; }
 .statement { margin-top: 150px; display: flex; align-items: center; justify-content: space-between; gap: 35px; padding-block: 35px; border-block: 1px solid rgba(0,0,0,.2); }
@@ -215,7 +216,7 @@ h2 em { color: transparent; -webkit-text-stroke: 1px var(--gold); font-style: no
 .booking-content > p { width: min(530px,100%); margin: 44px 0; }
 .booking-content button { width: min(530px,100%); height: 84px; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; border: 1px solid #b6854e; background: rgba(199,149,90,.08); cursor: pointer; font-size: 10px; letter-spacing: .2em; transition: background .3s; }
 .booking-content button:hover { background: var(--gold); color: #070707; }
-.booking-content button i { font-size: 24px; font-style: normal; }
+.booking-content button .arrow-icon { flex: 0 0 auto; }
 .email-link { display: inline-block; margin-top: 28px; color: #89837a; font-size: 9px; letter-spacing: .18em; border-bottom: 1px solid #49453f; padding-bottom: 7px; }
 footer { position: absolute; left: clamp(22px,7vw,120px); right: clamp(22px,7vw,120px); bottom: 0; min-height: 180px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 30px; border-top: 1px solid var(--line); }
 .footer-brand { display: flex; align-items: center; }

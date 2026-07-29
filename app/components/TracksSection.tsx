@@ -21,7 +21,16 @@ export function TracksSection({ tracks, activeTrack, onTrackToggle }: TracksSect
           return (
             <article className={isActive ? "active" : ""} key={track.title} data-cinematic>
               <button className="track-play" onClick={() => onTrackToggle(index)} aria-label={`${isActive ? "Pause" : "Preview"} ${track.title}`}>
-                <span>{isActive ? "Ⅱ" : "▶"}</span>
+                {isActive ? (
+                  <svg viewBox="0 0 12 14" aria-hidden="true">
+                    <rect x="1" y="1" width="3" height="12" rx=".5" />
+                    <rect x="8" y="1" width="3" height="12" rx=".5" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 12 14" aria-hidden="true">
+                    <path d="M1.5 1.25 11 7l-9.5 5.75z" />
+                  </svg>
+                )}
               </button>
               <div className="vinyl" aria-hidden="true"><i /><b>{track.n}</b></div>
               <div className="track-name"><small>{track.genre}</small><h3>{track.title}</h3></div>
