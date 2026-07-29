@@ -445,13 +445,23 @@ function Scene({ active }: { active: boolean }) {
   ], []);
   const cable = useMemo(() => new THREE.CatmullRomCurve3(cablePoints), [cablePoints]);
 
-  useFrame(({ pointer, camera, clock }) => {
-    camera.position.x = THREE.MathUtils.lerp(camera.position.x, pointer.x * .55, .025);
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, 4.15 + pointer.y * .22, .025);
+  useFrame(({ pointer, camera, clock, size }) => {
+    const isPhone = size.width <= 580;
+    const isPortraitTablet = size.width <= 900;
+    const isTablet = size.width <= 1200;
+    const targetScale = isPhone ? .62 : isPortraitTablet ? .8 : isTablet ? .9 : 1;
+    const targetCameraZ = isPhone ? 13.8 : isPortraitTablet ? 10.8 : isTablet ? 9.15 : 8.15;
+    const pointerStrength = isPortraitTablet ? .18 : .55;
+
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, pointer.x * pointerStrength, .025);
+    camera.position.y = THREE.MathUtils.lerp(camera.position.y, (isPhone ? 3.55 : 4.15) + pointer.y * .22, .025);
+    camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCameraZ, .04);
     camera.lookAt(0, -.1, 0);
     if (rig.current) {
       const scrollDistance = Math.min(window.scrollY, window.innerHeight * 1.5);
       const scrollAngle = scrollDistance * .00165;
+      const scale = THREE.MathUtils.lerp(rig.current.scale.x, targetScale, .045);
+      rig.current.scale.setScalar(scale);
       rig.current.rotation.y = THREE.MathUtils.lerp(rig.current.rotation.y, scrollAngle, .065);
       rig.current.rotation.x = THREE.MathUtils.lerp(rig.current.rotation.x, Math.sin(scrollAngle) * .055, .055);
       rig.current.rotation.z = Math.sin(clock.elapsedTime * .35) * .008;
