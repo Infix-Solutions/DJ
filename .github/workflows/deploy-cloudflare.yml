@@ -41,4 +41,4 @@ jobs:
         run: npx --yes npm@12.0.1 run build
 
       - name: Deploy
-        run: npx --yes npm@12.0.1 run deploy -- --skip-build
+        run: npx --yes @vinext/cloudflare@1.0.0-beta.4 deploy --skip-build
